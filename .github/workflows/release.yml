@@ -147,6 +147,8 @@ jobs:
           gh release create "$TAG" --verify-tag --draft --prerelease \
             --title "nascentOS $TAG — installer preview" --notes-file release-notes.md
           gh release upload "$TAG" candidate/*
-          gh api "repos/$GH_REPO/releases/tags/$TAG" > uploaded-release.json
+          # Drafts are not returned by the REST get-release-by-tag endpoint.
+          release_api=$(gh release view "$TAG" --json apiUrl --jq .apiUrl)
+          gh api "$release_api" > uploaded-release.json
           python3 release-support/verify-remote.py candidate uploaded-release.json
           gh release edit "$TAG" --draft=false --prerelease --latest=false
