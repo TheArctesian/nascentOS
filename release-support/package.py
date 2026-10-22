@@ -16,11 +16,14 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
-def package(iso, lock, output, tag, revision, system, store_path, part_bytes=PART_BYTES):
+def package(iso, lock, output, tag, revision, system, store_path, part_bytes=PART_BYTES,
+            nixos_boot='not-run'):
     if system not in SYSTEMS or not re.fullmatch(r'[0-9a-f]{40}', revision):
         raise ValueError('Invalid system or source revision')
     if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9][A-Za-z0-9.-]*)?', tag):
         raise ValueError('Invalid release tag')
+    if nixos_boot not in ('passed', 'not-run'):
+        raise ValueError('Invalid boot test status')
     iso, lock, output = Path(iso), Path(lock), Path(output)
     if not iso.stat().st_size:
         raise ValueError('Empty ISO')
@@ -54,7 +57,7 @@ def package(iso, lock, output, tag, revision, system, store_path, part_bytes=PAR
                   'parts': [{'name': p.name, 'bytes': p.stat().st_size, 'sha256': digest(p)}
                             for p in assets]},
         'gates': {'source_and_cli': 'passed', 'configuration_profiles': 'passed',
-                  'vm_and_iso_build': 'passed', 'nixos_boot': 'passed',
+                  'iso_build': 'passed', 'nixos_boot': nixos_boot,
                   'graphical_desktop': 'pending', 'installer_disk_and_reboot': 'pending',
                   'physical_hardware': 'pending'},
         'release_ready': False,
@@ -71,8 +74,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('tag', 'revision', 'system', 'iso-dir', 'lock', 'store-path', 'output'):
         parser.add_argument(f'--{name}', required=True)
+    parser.add_argument('--nixos-boot', choices=['passed', 'not-run'], required=True)
     args = parser.parse_args()
     images = list(Path(args.iso_dir).glob('*.iso'))
     if len(images) != 1:
         raise SystemExit('Expected exactly one installer ISO')
-    package(images[0], args.lock, args.output, args.tag, args.revision, args.system, args.store_path)
+    package(images[0], args.lock, args.output, args.tag, args.revision, args.system,
+            args.store_path, nixos_boot=args.nixos_boot)

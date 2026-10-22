@@ -13,6 +13,42 @@ spec.loader.exec_module(candidate)
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_single_architecture_and_honest_boot_status(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            iso, lock = root / 'input.iso', root / 'flake.lock'
+            iso.write_bytes(b'ISO fixture')
+            lock.write_text('{}')
+            out = root / 'bundle'
+            manifest = package(iso, lock, out, 'v0.1.0-alpha.1', 'a'*40,
+                               'aarch64-linux', '/nix/store/example')
+            self.assertEqual(manifest['gates']['nixos_boot'], 'not-run')
+            notes = candidate.verify(out, 'v0.1.0-alpha.1', 'a'*40, ['aarch64-linux'])
+            self.assertIn('**not-run**', notes)
+            with self.assertRaises(FileNotFoundError):
+                candidate.verify(out, 'v0.1.0-alpha.1', 'a'*40)
+            with self.assertRaisesRegex(ValueError, 'Invalid expected architectures'):
+                candidate.verify(out, 'v0.1.0-alpha.1', 'a'*40, [])
+
+    def test_remote_digest_inventory_and_incomplete_upload(self):
+        spec = importlib.util.spec_from_file_location('remote', Path(__file__).with_name('verify-remote.py'))
+        remote = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(remote)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            file = root / 'image.part0000'
+            file.write_bytes(b'fixture')
+            asset = dict(name=file.name, state='uploaded', size=file.stat().st_size,
+                         digest='sha256:' + digest(file))
+            remote.verify(root, {'assets': [asset]})
+            for change in ({'digest': None}, {'digest': 'sha256:bad'}, {'state': 'new'}, {'size': 1}):
+                with self.subTest(change=change), self.assertRaises(ValueError):
+                    remote.verify(root, {'assets': [{**asset, **change}]})
+            with self.assertRaises(ValueError):
+                remote.verify(root, {'assets': []})
+            with self.assertRaises(ValueError):
+                remote.verify(root, {'assets': [asset, asset]})
+
     def test_tag_rejects_injection_and_missing_tag(self):
         for tag in ('main', 'v1', 'v1.0.0\nfoo=bar', 'v1.0.0;echo bad', '--help'):
             with self.assertRaises(ValueError):
@@ -53,7 +89,7 @@ class ReleaseTests(unittest.TestCase):
             changed = json.loads(original)
             changed['gates']['nixos_boot'] = 'pending'
             manifest_path.write_text(json.dumps(changed))
-            with self.assertRaisesRegex(ValueError, 'Automated gate did not pass'):
+            with self.assertRaisesRegex(ValueError, 'Invalid boot test status'):
                 candidate.verify(bundle, 'v1.0.0', 'a'*40)
             manifest_path.write_text(original)
             part = next(bundle.glob('*.part0000'))

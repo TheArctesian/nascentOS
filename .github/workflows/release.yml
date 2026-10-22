@@ -1,4 +1,4 @@
-name: Release candidate
+name: Build and publish installer ISOs
 on:
   push:
     tags: ['v*']
@@ -8,22 +8,34 @@ on:
         description: Existing version tag (vMAJOR.MINOR.PATCH)
         required: true
         type: string
-      create_draft:
-        description: Create a draft GitHub Release after builds and boot tests
-        default: false
-        type: boolean
 permissions:
   contents: read
 concurrency:
   group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 jobs:
-  resolve:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: aarch64-linux
+            runner: ubuntu-24.04-arm
+          - system: x86_64-linux
+            runner: ubuntu-24.04
+    # ARM is required; an x86 failure must not advertise an unbuilt x86 image.
+    continue-on-error: ${{ matrix.system == 'x86_64-linux' }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 180
     outputs:
       revision: ${{ steps.source.outputs.revision }}
       tag: ${{ steps.source.outputs.tag }}
+    env:
+      SYSTEM: ${{ matrix.system }}
+      NIX_CONFIG: |
+        experimental-features = nix-command flakes
+        max-jobs = 2
+        cores = 4
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -32,69 +44,67 @@ jobs:
       - id: source
         env:
           TAG: ${{ inputs.tag || github.ref_name }}
-        run: |
-          python3 release-support/resolve.py "$TAG" >> "$GITHUB_OUTPUT"
-  build:
-    needs: resolve
-    # Dedicated disposable Linux builders; never run PR code on these machines.
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: X64
-            system: x86_64-linux
-          - arch: ARM64
-            system: aarch64-linux
-    runs-on: [self-hosted, Linux, '${{ matrix.arch }}', nascent-release]
-    timeout-minutes: 360
-    env:
-      NIX_CONFIG: |
-        experimental-features = nix-command flakes
-    steps:
+        run: python3 release-support/resolve.py "$TAG" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ needs.resolve.outputs.revision }}
+          ref: ${{ steps.source.outputs.revision }}
           persist-credentials: false
-      - name: Check native Nix, capacity and KVM build capability
-        env:
-          SYSTEM: ${{ matrix.system }}
+      - name: Reclaim unused toolchains on this disposable runner
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          df -h /
+      - uses: cachix/install-nix-action@3c6342b75005b9cc7c7d4069c3e9179247c89012 # v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            max-jobs = 2
+            cores = 4
+      - name: Check native architecture and available space
         run: ./release-support/preflight "$SYSTEM"
-      - name: Release support checks
+      - name: Release support checks and workflow lint
         run: ./release-support/verify
-      - name: Formatting, evaluation and native CLI tests
-        run: ./scripts/check
-      - name: Build configuration and profile assertion checks
-        env:
-          SYSTEM: ${{ matrix.system }}
-        run: nix build -L --no-link ".#checks.$SYSTEM.installer" ".#checks.$SYSTEM.profiles"
-      - name: Build native VM and graphical installer ISO
-        env:
-          SYSTEM: ${{ matrix.system }}
+      - name: Source, CLI and configuration/profile checks
         run: |
-          nix build -L ".#packages.$SYSTEM.vm" --out-link result-vm
-          nix build -L ".#packages.$SYSTEM.installer" --out-link result-installer
-      - name: Execute native NixOS boot test (not graphical installation)
-        run: ./scripts/test-vm
-      - name: Package candidate only after all automated gates pass
-        env:
-          TAG: ${{ needs.resolve.outputs.tag }}
-          REVISION: ${{ needs.resolve.outputs.revision }}
-          SYSTEM: ${{ matrix.system }}
+          ./scripts/check
+          nix build -L --no-link ".#checks.$SYSTEM.installer" ".#checks.$SYSTEM.profiles"
+      - name: Build normal production ISO (not installer-dev)
         run: |
+          nix build -L --no-update-lock-file ".#packages.$SYSTEM.installer" --out-link result-installer
           git diff --exit-code HEAD -- flake.lock
+      - name: Optional native boot test when this runner actually exposes KVM
+        id: boot
+        run: |
+          if [[ -c /dev/kvm ]]; then
+            sudo chmod 666 /dev/kvm
+            echo 'extra-system-features = kvm' | sudo tee -a /etc/nix/nix.conf
+            sudo systemctl restart nix-daemon.service
+            nix build -L --no-link ".#checks.$SYSTEM.boot"
+            echo 'status=passed' >> "$GITHUB_OUTPUT"
+          else
+            echo 'No /dev/kvm; native boot test not run. This is recorded in the release manifest.'
+            echo 'status=not-run' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Remove unreferenced build dependencies before packaging
+        run: nix-collect-garbage
+      - name: Package checksums, source lock and bounded ISO parts
+        env:
+          TAG: ${{ steps.source.outputs.tag }}
+          REVISION: ${{ steps.source.outputs.revision }}
+          BOOT_STATUS: ${{ steps.boot.outputs.status }}
+        run: |
           python3 release-support/package.py --tag "$TAG" --revision "$REVISION" \
             --system "$SYSTEM" --iso-dir result-installer/iso --lock flake.lock \
-            --store-path "$(readlink -f result-installer)" --output candidate
+            --store-path "$(readlink -f result-installer)" --nixos-boot "$BOOT_STATUS" --output candidate
+          python3 release-support/verify-candidate.py candidate "$TAG" "$REVISION" --systems "$SYSTEM"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: candidate-${{ matrix.system }}
+          name: installer-${{ matrix.system }}
           path: candidate/*
           if-no-files-found: error
           compression-level: 0
-          retention-days: 7
-  draft:
-    if: github.event_name == 'workflow_dispatch' && inputs.create_draft
-    needs: [resolve, build]
+          retention-days: 1
+  publish:
+    needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -102,25 +112,32 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ needs.resolve.outputs.revision }}
+          ref: ${{ needs.build.outputs.revision }}
           persist-credentials: false
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          pattern: candidate-*
+          pattern: installer-*
           merge-multiple: true
           path: candidate
-      - name: Verify candidate integrity and write release notes
+      - name: Verify exact source and all image parts
         env:
-          TAG: ${{ needs.resolve.outputs.tag }}
-          REVISION: ${{ needs.resolve.outputs.revision }}
-        run: python3 release-support/verify-candidate.py candidate "$TAG" "$REVISION"
-      - name: Create draft only; existing releases are never overwritten
+          TAG: ${{ needs.build.outputs.tag }}
+          REVISION: ${{ needs.build.outputs.revision }}
+        run: |
+          systems=(aarch64-linux)
+          if [[ -f candidate/nascentos-$TAG-x86_64-linux.manifest.json ]]; then systems+=(x86_64-linux); fi
+          python3 release-support/verify-candidate.py candidate "$TAG" "$REVISION" --systems "${systems[@]}"
+      - name: Upload, verify GitHub asset digests and publish prerelease
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          TAG: ${{ needs.resolve.outputs.tag }}
-          REVISION: ${{ needs.resolve.outputs.revision }}
+          TAG: ${{ needs.build.outputs.tag }}
+          REVISION: ${{ needs.build.outputs.revision }}
         run: |
           test "$(gh api "repos/$GH_REPO/commits/$TAG" --jq .sha)" = "$REVISION"
-          gh release create "$TAG" candidate/* --verify-tag --draft \
-            --title "nascentOS $TAG (candidate)" --notes-file release-notes.md
+          gh release create "$TAG" --verify-tag --draft --prerelease \
+            --title "nascentOS $TAG — installer preview" --notes-file release-notes.md
+          gh release upload "$TAG" candidate/*
+          gh api "repos/$GH_REPO/releases/tags/$TAG" > uploaded-release.json
+          python3 release-support/verify-remote.py candidate uploaded-release.json
+          gh release edit "$TAG" --draft=false --prerelease --latest=false
