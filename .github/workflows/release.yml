@@ -53,6 +53,15 @@ jobs:
         run: |
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
           df -h /
+      - name: Add evaluation memory headroom on this disposable runner
+        run: |
+          test ! -e /mnt/nascent-release.swap
+          sudo fallocate -l 24G /mnt/nascent-release.swap
+          sudo chmod 600 /mnt/nascent-release.swap
+          sudo mkswap /mnt/nascent-release.swap
+          sudo swapon /mnt/nascent-release.swap
+          free -h
+          df -h / /mnt
       - uses: cachix/install-nix-action@3c6342b75005b9cc7c7d4069c3e9179247c89012 # v31
         with:
           extra_nix_config: |

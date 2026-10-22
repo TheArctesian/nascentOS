@@ -41,7 +41,9 @@ Standard hosted runners document 14 GB storage, so the job first removes unused
 Android, .NET, GHC and CodeQL toolchains **on that disposable runner only**.
 Preflight logs actual free space and requires 30 GiB for the ISO-only build.
 This is a measured-at-run gate, not a promise of unlimited hosted capacity.
-The build uses two Nix jobs/four cores, a 180-minute timeout, and garbage-collects
+The job adds a 24 GiB swap file on its disposable runner for all-system Nix
+evaluation headroom and logs actual memory/space. The build uses two Nix
+jobs/four cores, a 180-minute timeout, and garbage-collects
 unreferenced build dependencies before copying release parts. Failure stops
 publication; there is no silently queued self-hosted job.
 
