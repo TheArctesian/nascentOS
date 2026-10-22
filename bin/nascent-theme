@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# nascent:summary=Select writable, persistent per-user desktop palettes
+set -euo pipefail
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/nascentos"
+data_dir="${NASCENT_DATA_DIR:-/etc/nascentos}"
+valid_name() { [[ $1 =~ ^[a-zA-Z0-9_-]+$ ]]; }
+current() {
+  local selected=nord target
+  if [[ -L $config_dir/current-theme ]]; then
+    target=$(readlink "$config_dir/current-theme")
+    selected=${target##*/}
+  fi
+  valid_name "$selected" || selected=nord
+  printf '%s\n' "$selected"
+}
+select_theme() {
+  local selected=$1 temporary
+  valid_name "$selected" || { echo "Invalid theme: $selected" >&2; exit 2; }
+  for file in kitty.conf waybar.css fuzzel.ini mako.conf hyprland.lua hyprlock.conf; do
+    [[ -f $config_dir/themes/$selected/$file ]] || { echo "Incomplete theme: $selected ($file missing)" >&2; exit 2; }
+  done
+  if [[ -e $config_dir/current-theme && ! -L $config_dir/current-theme ]]; then
+    echo "Refusing to replace a personal file/directory: $config_dir/current-theme" >&2; exit 1
+  fi
+  temporary=$(mktemp -d "$config_dir/.theme.XXXXXX")
+  ln -s "themes/$selected" "$temporary/link"
+  mv -Tf "$temporary/link" "$config_dir/current-theme"
+  rmdir "$temporary"
+}
+init() {
+  mkdir -p "$config_dir/themes"
+  for source in "$data_dir"/themes/*; do
+    [[ -d $source ]] || continue
+    name=${source##*/}
+    if [[ ! -e $config_dir/themes/$name && ! -L $config_dir/themes/$name ]]; then
+      cp -RL "$source" "$config_dir/themes/$name"
+      chmod -R u+w "$config_dir/themes/$name"
+    fi
+  done
+  if [[ ! -L $config_dir/current-theme ]]; then select_theme nord; fi
+  if [[ ! -e $config_dir/waybar.json && -f $data_dir/waybar.json ]]; then
+    cp "$data_dir/waybar.json" "$config_dir/waybar.json"
+    chmod u+w "$config_dir/waybar.json"
+  fi
+  gtk_config="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-4.0"
+  if [[ ! -e $gtk_config/gtk.css && ! -L $gtk_config/gtk.css && -f $data_dir/gtk-4.0.css ]]; then
+    mkdir -p "$gtk_config"
+    cp "$data_dir/gtk-4.0.css" "$gtk_config/gtk.css"
+    chmod u+w "$gtk_config/gtk.css"
+  fi
+}
+case "${1:---help}" in
+  init) init ;;
+  list)
+    init
+    for theme in "$config_dir"/themes/*; do
+      [[ -d $theme ]] && printf '%s\n' "${theme##*/}"
+    done
+    ;;
+  current) current ;;
+  path) init; printf '%s/current-theme\n' "$config_dir" ;;
+  set)
+    [[ $# == 2 ]] || { echo 'Usage: nascent theme set NAME' >&2; exit 2; }
+    init
+    select_theme "$2"
+    if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
+      hyprctl reload
+      pkill -u "$(id -u)" -USR2 -x waybar || true
+      makoctl reload || true
+    fi
+    echo "Theme: $2. Existing terminals keep their colors; new terminals use this theme."
+    ;;
+  *) echo 'Usage: nascent theme list|current|set NAME' ;;
+esac

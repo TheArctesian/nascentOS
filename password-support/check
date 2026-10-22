@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root=$(git rev-parse --show-toplevel)
+cd "$root/password-support"
+if ! command -v nix >/dev/null 2>&1; then
+  export PATH="/nix/var/nix/profiles/default/bin:$PATH"
+fi
+if ! command -v nix >/dev/null 2>&1; then
+  echo 'Environment failure: install Nix with flakes support, then rerun password-support/check.' >&2
+  exit 127
+fi
+export NIX_CONFIG="${NIX_CONFIG:-}
+extra-experimental-features = nix-command flakes"
+nix flake check --no-build --all-systems .
+nix eval --json .#lib.checks
+system=$(nix eval --impure --raw --expr builtins.currentSystem)
+nix run ".#formatter.$system" -- --check module.nix catalog-adapter.nix flake.nix tests/eval.nix

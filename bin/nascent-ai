@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# nascent:summary=Use the optional local inference and Whisper tools
+set -euo pipefail
+case "${1:---help}" in
+  models) exec ollama list ;;
+  run) shift; [[ $# -gt 0 ]] || { echo 'Usage: nascent ai run MODEL [PROMPT...]' >&2; exit 2; }; exec ollama run "$@" ;;
+  transcribe)
+    shift
+    [[ $# == 2 && -f $1 && -f $2 ]] || { echo 'Usage: nascent ai transcribe MODEL.bin AUDIO.wav' >&2; exit 2; }
+    exec whisper-cli -m "$1" -f "$2"
+    ;;
+  *) echo 'Enable nascent.localAI.enable on your host, then use:'
+     echo 'nascent ai models | run MODEL [PROMPT...] | transcribe MODEL.bin AUDIO.wav'
+     echo 'Models are acquired explicitly; no model is downloaded by this command.' ;;
+esac

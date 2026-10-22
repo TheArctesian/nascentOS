@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# nascent:summary=Display the approved terminal logo in Nord or plain ASCII
+set -euo pipefail
+exec sh "${NASCENT_DATA_DIR:-/etc/nascentos}/branding/show-logo.sh" "$@"

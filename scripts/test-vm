@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+if [[ $(uname -s) != Linux ]]; then
+  echo "Environment failure: the NixOS boot test needs a Linux builder with /dev/kvm. See docs/testing.md." >&2
+  exit 1
+fi
+if [[ ! -r /dev/kvm || ! -w /dev/kvm ]]; then
+  echo "Environment failure: /dev/kvm must be readable and writable by the Nix build user." >&2
+  exit 1
+fi
+./scripts/check
+export PATH="/nix/var/nix/profiles/default/bin:$PATH"
+export NIX_CONFIG="${NIX_CONFIG:-}
+extra-experimental-features = nix-command flakes"
+system=$(nix eval --impure --raw --expr builtins.currentSystem)
+case "$system" in
+  aarch64-linux|x86_64-linux) ;;
+  *) echo "Unsupported test architecture: $system" >&2; exit 1 ;;
+esac
+nix build -L ".#checks.$system.boot"

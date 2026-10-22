@@ -1,0 +1,836 @@
+{
+  "schemaVersion": 1,
+  "nixpkgsRevision": "cd4ea8d57de16f4810bc5f14207bac45fbf19f67",
+  "apps": [
+    {
+      "id": "neovim",
+      "name": "Neovim",
+      "group": "Editors",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": true,
+      "description": "Fast terminal editor; nascentOS default. LazyVim configuration is provided separately.",
+      "url": "https://neovim.io/",
+      "icon": "nvim",
+      "package": "neovim",
+      "license": "Apache-2.0 AND Vim",
+      "version": "0.12.4",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/applications/editors/neovim/wrapper.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "zed",
+      "name": "Zed",
+      "group": "Editors",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Fast graphical code editor with collaborative and AI features.",
+      "url": "https://zed.dev/docs/linux",
+      "icon": "zed",
+      "package": "zed-editor",
+      "license": "GPL-3.0-only",
+      "version": "1.3.6",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/ze/zed-editor/package.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "vscodium",
+      "name": "VSCodium",
+      "group": "Editors",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Community build of VS Code with telemetry disabled.",
+      "url": "https://vscodium.com/",
+      "icon": "vscodium",
+      "package": "vscodium",
+      "license": "MIT",
+      "version": "1.116.02821",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/applications/editors/vscode/vscodium.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "opencode",
+      "name": "OpenCode CLI",
+      "group": "AI tools",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Open source terminal coding agent. Provider credentials or a subscription may be needed.",
+      "url": "https://opencode.ai/docs/",
+      "icon": "opencode",
+      "package": "opencode",
+      "license": "MIT",
+      "version": "1.15.10",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/op/opencode/package.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "codex",
+      "name": "Codex CLI",
+      "group": "AI tools",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "OpenAI terminal coding agent. Sign in or configure API access after installation.",
+      "url": "https://learn.chatgpt.com/docs/codex/cli",
+      "icon": "openai",
+      "package": "codex",
+      "license": "Apache-2.0",
+      "version": "0.146.0",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/co/codex/package.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "cursor",
+      "name": "Cursor",
+      "group": "AI tools",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": true,
+      "default": false,
+      "description": "AI code editor. Account and service terms apply.",
+      "url": "https://cursor.com/download",
+      "icon": "cursor",
+      "package": "code-cursor",
+      "license": "unfree",
+      "version": "3.5.17",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/co/code-cursor/package.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "chatgpt",
+      "name": "ChatGPT",
+      "group": "AI tools",
+      "kind": "manual",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": true,
+      "default": false,
+      "description": "Not offered by this installer: no verified official native package in the pinned package set.",
+      "url": "https://chatgpt.com/",
+      "icon": "chatgpt",
+      "license": "Proprietary service terms; not installed",
+      "reason": "No verified official native package in pinned nixpkgs. This picker does not create web shortcuts or install unofficial wrappers.",
+      "backend": "manual"
+    },
+    {
+      "id": "firefox",
+      "name": "Firefox",
+      "group": "Browsers",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": true,
+      "description": "Open source browser from Mozilla.",
+      "url": "https://www.firefox.com/",
+      "icon": "firefox",
+      "package": "firefox",
+      "license": "MPL-2.0",
+      "version": "158.0",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/applications/networking/browsers/firefox/wrapper.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "chromium",
+      "name": "Chromium",
+      "group": "Browsers",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Open source Chromium browser.",
+      "url": "https://www.chromium.org/Home/",
+      "icon": "chromium",
+      "package": "chromium",
+      "license": "BSD-3-Clause",
+      "version": "155.0.8059.84",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/applications/networking/browsers/chromium/browser.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "joplin",
+      "name": "Joplin",
+      "group": "Notes & research",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Markdown notes and notebooks with optional synchronisation.",
+      "url": "https://joplinapp.org/help/install/",
+      "icon": "joplin",
+      "package": "joplin-desktop",
+      "license": "AGPL-3.0-or-later",
+      "version": "3.5.13",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/jo/joplin-desktop/package.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "notion",
+      "name": "Notion",
+      "group": "Notes & research",
+      "kind": "manual",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": true,
+      "default": false,
+      "description": "Not offered by this installer: no verified official native package in the pinned package set.",
+      "url": "https://www.notion.so/",
+      "icon": "notion",
+      "license": "Proprietary service terms; not installed",
+      "reason": "No verified official native package in pinned nixpkgs. This picker does not create web shortcuts or install unofficial wrappers.",
+      "backend": "manual"
+    },
+    {
+      "id": "obsidian",
+      "name": "Obsidian",
+      "group": "Notes & research",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": true,
+      "default": false,
+      "description": "Local Markdown knowledge base. Review the Obsidian end user agreement.",
+      "url": "https://obsidian.md/download",
+      "icon": "obsidian",
+      "package": "obsidian",
+      "license": "obsidian",
+      "version": "1.13.7",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/ob/obsidian/package.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "zotero",
+      "name": "Zotero",
+      "group": "Notes & research",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Collect, organise and cite research sources.",
+      "url": "https://www.zotero.org/download/",
+      "icon": "zotero",
+      "package": "zotero",
+      "license": "AGPL-3.0-only",
+      "version": "9.0.6",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/zo/zotero/package.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "blender",
+      "name": "Blender",
+      "group": "3D & game development",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "3D modelling, animation and rendering. Large optional download.",
+      "url": "https://www.blender.org/",
+      "icon": "blender",
+      "package": "blender",
+      "license": "GPL-2.0-or-later",
+      "version": "5.1.1",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/bl/blender/package.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "godot",
+      "name": "Godot",
+      "group": "3D & game development",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Open source 2D and 3D game engine (standard build, without .NET).",
+      "url": "https://godotengine.org/download/linux/",
+      "icon": "godot",
+      "package": "godot_4",
+      "license": "MIT",
+      "version": "4.6.3-stable",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/development/tools/godot/common.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "unity",
+      "name": "Unity",
+      "group": "3D & game development",
+      "kind": "manual",
+      "platforms": [
+        "x86_64-linux"
+      ],
+      "proprietary": true,
+      "default": false,
+      "description": "Set up Unity Hub, choose an editor and review Unity licensing after installation.",
+      "url": "https://docs.unity.com/en-us/hub",
+      "icon": "unityhub",
+      "reason": "Manual setup: Unity Hub is available in pinned nixpkgs for x86_64 Linux, but editor downloads, account activation and license review must be completed by you. No editor is downloaded by this picker.",
+      "license": "Proprietary license; review upstream terms",
+      "architectureReason": "Available here for x86_64 Linux only. No supported ARM installation is offered by this catalog.",
+      "backend": "manual"
+    },
+    {
+      "id": "unreal",
+      "name": "Unreal Engine",
+      "group": "3D & game development",
+      "kind": "manual",
+      "platforms": [
+        "x86_64-linux"
+      ],
+      "proprietary": true,
+      "default": false,
+      "description": "Follow Epic\u2019s Linux setup guide after installation.",
+      "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/linux-development-quickstart-for-unreal-engine",
+      "icon": "unreal-engine",
+      "reason": "Manual setup: Epic account, license review and a large engine download or source build are required. No engine is installed by this picker. Linux ARM editor support has not been verified.",
+      "license": "Proprietary license; review upstream terms",
+      "architectureReason": "Available here for x86_64 Linux only. No supported ARM installation is offered by this catalog.",
+      "backend": "manual"
+    },
+    {
+      "id": "signal",
+      "name": "Signal",
+      "group": "Communication",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Private messaging. Link to Signal on your phone after installation.",
+      "url": "https://signal.org/download/",
+      "icon": "signal-desktop",
+      "package": "signal-desktop",
+      "license": "AGPL-3.0-only AND free",
+      "version": "8.29.0",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/si/signal-desktop/package.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "whatsapp",
+      "name": "WhatsApp",
+      "group": "Communication",
+      "kind": "manual",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": true,
+      "default": false,
+      "description": "Not offered by this installer: no verified official native package in the pinned package set.",
+      "url": "https://web.whatsapp.com/",
+      "icon": "whatsapp",
+      "license": "Proprietary service terms; not installed",
+      "reason": "No verified official native package in pinned nixpkgs. This picker does not create web shortcuts or install unofficial wrappers.",
+      "backend": "manual"
+    },
+    {
+      "id": "session",
+      "name": "Session",
+      "group": "Communication",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Decentralised private messenger.",
+      "url": "https://getsession.org/download",
+      "icon": "session-desktop",
+      "package": "session-desktop",
+      "license": "GPL-3.0-only",
+      "version": "1.18.0",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/se/session-desktop/package.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "slack",
+      "name": "Slack",
+      "group": "Communication",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux"
+      ],
+      "proprietary": true,
+      "default": false,
+      "description": "Team messaging. Account and workspace membership may be needed.",
+      "url": "https://slack.com/downloads/linux",
+      "icon": "slack",
+      "package": "slack",
+      "license": "unfree",
+      "version": "4.49.89",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/sl/slack/package.nix",
+      "architectureReason": "Available here for x86_64 Linux only. No supported ARM installation is offered by this catalog.",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "teams",
+      "name": "Microsoft Teams",
+      "group": "Communication",
+      "kind": "manual",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": true,
+      "default": false,
+      "description": "Not offered by this installer: no verified official native package in the pinned package set.",
+      "url": "https://teams.microsoft.com/",
+      "icon": "teams",
+      "license": "Proprietary service terms; not installed",
+      "reason": "No verified official native package in pinned nixpkgs. This picker does not create web shortcuts or install unofficial wrappers.",
+      "backend": "manual"
+    },
+    {
+      "id": "discord",
+      "name": "Discord",
+      "group": "Communication",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux"
+      ],
+      "proprietary": true,
+      "default": false,
+      "description": "Community voice, video and text chat. Account required.",
+      "url": "https://discord.com/download",
+      "icon": "discord",
+      "package": "discord",
+      "license": "unfree",
+      "version": "1.0.159",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/applications/networking/instant-messengers/discord/default.nix",
+      "architectureReason": "Available here for x86_64 Linux only. No supported ARM installation is offered by this catalog.",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "onlyoffice",
+      "name": "ONLYOFFICE",
+      "group": "Office",
+      "kind": "package",
+      "package": "onlyoffice-desktopeditors",
+      "platforms": [
+        "x86_64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Documents, spreadsheets, presentations and PDFs. Large optional office suite.",
+      "url": "https://www.onlyoffice.com/desktop",
+      "icon": "onlyoffice-desktopeditors",
+      "license": "AGPL-3.0-or-later",
+      "version": "9.1.0",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/on/onlyoffice-desktopeditors/package.nix",
+      "architectureReason": "Available here for x86_64 Linux only. No supported ARM installation is offered by this catalog.",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "libreoffice",
+      "name": "LibreOffice",
+      "group": "Office",
+      "kind": "package",
+      "package": "libreoffice",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Open source office suite with Writer, Calc, Impress, Draw, Base and Math.",
+      "url": "https://www.libreoffice.org/",
+      "icon": "libreoffice-startcenter",
+      "license": "MPL-2.0 AND LGPL-3.0-or-later AND Apache-2.0",
+      "version": "25.8.5.2",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/applications/office/libreoffice/default.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "inkscape",
+      "name": "Inkscape",
+      "group": "Graphics",
+      "kind": "package",
+      "package": "inkscape",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Create and edit SVG vector artwork.",
+      "url": "https://inkscape.org/",
+      "icon": "inkscape",
+      "license": "GPL-3.0-or-later",
+      "version": "1.4.4",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/applications/graphics/inkscape/default.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "gimp",
+      "name": "GIMP",
+      "group": "Graphics",
+      "kind": "package",
+      "package": "gimp",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Image editing, retouching and painting.",
+      "url": "https://www.gimp.org/",
+      "icon": "gimp",
+      "license": "GPL-3.0-or-later",
+      "version": "3.0.8",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/applications/graphics/gimp/default.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "kdenlive",
+      "name": "Kdenlive",
+      "group": "Video",
+      "kind": "package",
+      "package": "kdePackages.kdenlive",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Open source nonlinear video editing.",
+      "url": "https://kdenlive.org/",
+      "icon": "kdenlive",
+      "license": "Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND BSL-1.0 AND CC-BY-SA-4.0 AND CC0-1.0 AND GPL-2.0-only AND GPL-3.0-only AND GPL-3.0-or-later AND LGPL-3.0-only AND LGPL-3.0-or-later AND MIT",
+      "version": "26.04.3",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/kde/gear/kdenlive/default.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "shotcut",
+      "name": "Shotcut",
+      "group": "Video",
+      "kind": "package",
+      "package": "shotcut",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Open source video editor with broad format support.",
+      "url": "https://shotcut.org/",
+      "icon": "shotcut",
+      "license": "GPL-3.0-or-later",
+      "version": "26.2.26",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/sh/shotcut/package.nix",
+      "backend": "nixpkgs"
+    },
+    {
+      "id": "davinci-resolve",
+      "name": "DaVinci Resolve",
+      "group": "Video",
+      "kind": "manual",
+      "platforms": [
+        "x86_64-linux"
+      ],
+      "proprietary": true,
+      "default": false,
+      "description": "Professional video editing. Manual license and GPU/runtime review required.",
+      "url": "https://www.blackmagicdesign.com/products/davinciresolve",
+      "icon": "davinci-resolve",
+      "license": "unfree",
+      "version": "20.3.2",
+      "packageAvailable": "davinci-resolve",
+      "reason": "Manual setup only: pinned package fetch submits a registration request to Blackmagic. This installer will not submit it, accept license terms or download the large engine automatically. Requires compatible GPU drivers and OpenCL/CUDA; codec availability varies by edition. Studio requires a purchased license.",
+      "architectureReason": "Available here for x86_64 Linux only. No supported ARM installation is offered by this catalog.",
+      "backend": "manual"
+    },
+    {
+      "id": "fira-code",
+      "name": "Fira Code",
+      "group": "Fonts & accessibility",
+      "kind": "package",
+      "backend": "nixpkgs",
+      "role": "font",
+      "package": "fira-code",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": true,
+      "description": "Coding monospace font with programming ligatures.",
+      "url": "https://github.com/tonsky/FiraCode",
+      "icon": "preferences-desktop-font",
+      "license": "OFL-1.1",
+      "version": "6.2",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/fi/fira-code/package.nix",
+      "fontUse": "monospace",
+      "fontFamilies": [
+        "Fira Code"
+      ]
+    },
+    {
+      "id": "font-awesome",
+      "name": "Font Awesome",
+      "group": "Fonts & accessibility",
+      "kind": "package",
+      "backend": "nixpkgs",
+      "role": "font",
+      "package": "font-awesome",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": true,
+      "description": "Bundled icon font for desktop symbols; not a reading or UI text font.",
+      "url": "https://github.com/FortAwesome/Font-Awesome",
+      "icon": "preferences-desktop-font",
+      "license": "OFL-1.1",
+      "version": "7.2.0",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/data/fonts/font-awesome/default.nix",
+      "fontUse": "icons",
+      "fontFamilies": [
+        "Font Awesome 7 Free",
+        "Font Awesome 7 Free Solid",
+        "Font Awesome 7 Brands"
+      ]
+    },
+    {
+      "id": "open-dyslexic",
+      "name": "OpenDyslexic",
+      "group": "Fonts & accessibility",
+      "kind": "package",
+      "backend": "nixpkgs",
+      "role": "font",
+      "package": "open-dyslexic",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Optional UI reading font. Choose it in desktop settings; coding remains monospace.",
+      "url": "https://opendyslexic.org/",
+      "icon": "preferences-desktop-font",
+      "license": "OFL-1.1",
+      "version": "0.91.12",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/op/open-dyslexic/package.nix",
+      "fontUse": "ui",
+      "fontFamilies": [
+        "OpenDyslexic"
+      ]
+    },
+    {
+      "id": "protonmail-desktop",
+      "name": "Proton Mail Desktop",
+      "version": "1.13.0",
+      "platforms": [
+        "x86_64-linux"
+      ],
+      "default": true,
+      "description": "Proton Mail and Calendar. Linux beta; paid Mail plan after 14-day trial. No Bridge needed.",
+      "url": "https://proton.me/mail/download",
+      "license": "GPL-3.0-or-later",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/pr/protonmail-desktop/package.nix",
+      "kind": "package",
+      "backend": "nixpkgs",
+      "package": "protonmail-desktop",
+      "proprietary": false,
+      "group": "Mail",
+      "icon": "proton-mail"
+    },
+    {
+      "id": "protonmail-bridge",
+      "name": "Proton Mail Bridge (IMAP/SMTP add-on)",
+      "version": "3.24.2",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "default": false,
+      "description": "Not a mail reader. Paid Proton Mail plan, credential store and manual client setup required. Thunderbird is the officially supported Linux client.",
+      "url": "https://proton.me/mail/bridge",
+      "license": "GPL-3.0-or-later",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/pr/protonmail-bridge-gui/package.nix",
+      "kind": "package",
+      "backend": "nixpkgs",
+      "package": "protonmail-bridge-gui",
+      "proprietary": false,
+      "group": "Mail",
+      "icon": "protonmail-bridge-gui"
+    },
+    {
+      "id": "thunderbird",
+      "name": "Thunderbird",
+      "version": "157.0.1",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "default": false,
+      "description": "Mail client for other providers, or Proton with separately selected Bridge and a paid Mail plan. Officially supported by Proton Bridge on Linux.",
+      "url": "https://www.thunderbird.net/",
+      "license": "MPL-2.0",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/applications/networking/mailreaders/thunderbird/wrapper.nix",
+      "kind": "package",
+      "backend": "nixpkgs",
+      "package": "thunderbird",
+      "proprietary": false,
+      "group": "Mail",
+      "icon": "thunderbird"
+    },
+    {
+      "id": "geary",
+      "name": "Geary",
+      "version": "46.0",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "default": false,
+      "description": "GNOME mail client for IMAP providers. Proton needs Bridge; Geary is not officially supported by Proton.",
+      "url": "https://apps.gnome.org/Geary/",
+      "license": "LGPL-2.1-or-later",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/ge/geary/package.nix",
+      "kind": "package",
+      "backend": "nixpkgs",
+      "package": "geary",
+      "proprietary": false,
+      "group": "Mail",
+      "icon": "geary"
+    },
+    {
+      "id": "evolution",
+      "name": "Evolution",
+      "version": "3.60.2",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "default": false,
+      "description": "Mail, calendar and contacts. Proton needs Bridge; Evolution is not officially supported by Proton.",
+      "url": "https://apps.gnome.org/Evolution/",
+      "license": "LGPL-2.0-or-later",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/applications/networking/mailreaders/evolution/evolution/default.nix",
+      "kind": "package",
+      "backend": "nixpkgs",
+      "package": "evolution",
+      "proprietary": false,
+      "group": "Mail",
+      "icon": "evolution"
+    },
+    {
+      "id": "proton-pass",
+      "name": "Proton Pass",
+      "group": "Passwords",
+      "kind": "package",
+      "package": "proton-pass",
+      "backend": "nixpkgs",
+      "platforms": [
+        "x86_64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Preferred vault. Browser extension handles website autofill and passkeys; session keyring is separate.",
+      "url": "https://proton.me/pass",
+      "icon": "proton-pass",
+      "license": "GPL-3.0-or-later",
+      "version": "1.36.1",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/pr/proton-pass/package.nix",
+      "architectureReason": "Pinned Proton desktop supports x86_64 Linux only. Use the official browser extension on ARM; no AppImage fallback is verified.",
+      "firefoxId": "78272b6fa58f4a1abaac99321d503a20@proton.me",
+      "firefoxSlug": "proton-pass"
+    },
+    {
+      "id": "keepassxc",
+      "name": "KeePassXC",
+      "group": "Passwords",
+      "kind": "package",
+      "package": "keepassxc",
+      "backend": "nixpkgs",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Local database vault with browser pairing. Optional Secret Service requires explicit database-group exposure.",
+      "url": "https://keepassxc.org/",
+      "icon": "keepassxc",
+      "license": "GPL-2.0-or-later",
+      "version": "2.7.12",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/ke/keepassxc/package.nix",
+      "firefoxId": "keepassxc-browser@keepassxc.org",
+      "firefoxSlug": "keepassxc-browser"
+    },
+    {
+      "id": "bitwarden",
+      "name": "Bitwarden",
+      "group": "Passwords",
+      "kind": "package",
+      "package": "bitwarden-desktop",
+      "backend": "nixpkgs",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": false,
+      "default": false,
+      "description": "Synced vault with browser autofill. Desktop system authentication needs separate runtime validation.",
+      "url": "https://bitwarden.com/",
+      "icon": "bitwarden",
+      "license": "GPL-3.0-only",
+      "version": "2026.8.0",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/bi/bitwarden-desktop/package.nix",
+      "firefoxId": "{446900e4-71c2-419f-a6a7-df9c091e268b}",
+      "firefoxSlug": "bitwarden-password-manager"
+    }
+  ]
+}

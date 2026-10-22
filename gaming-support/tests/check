@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+if ! command -v nix >/dev/null 2>&1; then
+  if [[ -x /nix/var/nix/profiles/default/bin/nix ]]; then
+    export PATH="/nix/var/nix/profiles/default/bin:$PATH"
+  else
+    echo 'Environment failure: Nix is required; install Nix before running this gate.' >&2
+    exit 127
+  fi
+fi
+# Fetch only the prototype lock's Nixpkgs input; never copy its live VM/socket state.
+# NIXPKGS_SOURCE can select a previously fetched pinned source in offline CI.
+if [[ -z ${NIXPKGS_SOURCE:-} ]]; then
+  NIXPKGS_SOURCE=$(nix --extra-experimental-features 'nix-command flakes' eval --impure --raw --expr \
+    'let lock = builtins.fromJSON (builtins.readFile ./tests/flake.lock); in (builtins.fetchTree lock.nodes.nixpkgs.locked).outPath')
+fi
+export NIXPKGS_SOURCE
+nix --extra-experimental-features 'nix-command flakes' eval --impure --json \
+  --expr "import ./tests/eval.nix { nixpkgs = builtins.toPath (builtins.getEnv \"NIXPKGS_SOURCE\"); }" \
+  --show-trace

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# nascent:summary=Discover desktop, theme and agent commands
+set -euo pipefail
+case "${1:---help}" in
+  theme|agent|launch|editor|wallpaper|ai|voice|hardware|logo)
+    group=$1; shift
+    exec "nascent-$group" "$@"
+    ;;
+  menu) shift; exec nascent-menu "$@" ;;
+  --help|-h|help)
+    cat <<'HELP'
+nascent hardware scan            Review target hardware/profile recommendation
+nascent hardware generate DIR    Generate a reviewable profile without applying it
+nascent logo [--plain|--color]     Display the approved Nord terminal logo
+nascent menu                     Open the desktop menu
+nascent editor [FILES...]         Open your writable LazyVim configuration
+nascent wallpaper set FILE       Select a wallpaper without rebuilding
+nascent voice --help             Bounded speech/text browser commands
+nascent ai --help                Local inference and transcription commands
+nascent theme list|current        Inspect available/selected themes
+nascent theme set nord|tokyo-night  Persist a theme (default: nord)
+nascent agent list|current        Inspect user-owned agent adapters
+nascent agent set NAME            Select an installed adapter
+nascent agent run [ARGS...]       Run it with normal provider permissions
+nascent launch terminal|apps      Open a themed terminal or app launcher
+HELP
+    ;;
+  *) echo "Unknown command: $1. Run nascent --help." >&2; exit 2 ;;
+esac

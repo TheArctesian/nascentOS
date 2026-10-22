@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "nixpkgsRevision": "cd4ea8d57de16f4810bc5f14207bac45fbf19f67",
+  "apps": [
+    {
+      "id": "protonmail-desktop",
+      "name": "Proton Mail Desktop",
+      "version": "1.13.0",
+      "platforms": [
+        "x86_64-linux"
+      ],
+      "default": true,
+      "description": "Proton Mail and Calendar. Linux beta; paid Mail plan after 14-day trial. No Bridge needed.",
+      "url": "https://proton.me/mail/download",
+      "license": "GPL-3.0-or-later",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/pr/protonmail-desktop/package.nix",
+      "kind": "package",
+      "backend": "nixpkgs",
+      "package": "protonmail-desktop",
+      "proprietary": false,
+      "group": "Mail",
+      "icon": "proton-mail"
+    },
+    {
+      "id": "protonmail-bridge",
+      "name": "Proton Mail Bridge (IMAP/SMTP add-on)",
+      "version": "3.24.2",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "default": false,
+      "description": "Not a mail reader. Paid Proton Mail plan, credential store and manual client setup required. Thunderbird is the officially supported Linux client.",
+      "url": "https://proton.me/mail/bridge",
+      "license": "GPL-3.0-or-later",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/pr/protonmail-bridge-gui/package.nix",
+      "kind": "package",
+      "backend": "nixpkgs",
+      "package": "protonmail-bridge-gui",
+      "proprietary": false,
+      "group": "Mail",
+      "icon": "protonmail-bridge-gui"
+    },
+    {
+      "id": "thunderbird",
+      "name": "Thunderbird",
+      "version": "157.0.1",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "default": false,
+      "description": "Mail client for other providers, or Proton with separately selected Bridge and a paid Mail plan. Officially supported by Proton Bridge on Linux.",
+      "url": "https://www.thunderbird.net/",
+      "license": "MPL-2.0",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/applications/networking/mailreaders/thunderbird/wrapper.nix",
+      "kind": "package",
+      "backend": "nixpkgs",
+      "package": "thunderbird",
+      "proprietary": false,
+      "group": "Mail",
+      "icon": "thunderbird"
+    },
+    {
+      "id": "geary",
+      "name": "Geary",
+      "version": "46.0",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "default": false,
+      "description": "GNOME mail client for IMAP providers. Proton needs Bridge; Geary is not officially supported by Proton.",
+      "url": "https://apps.gnome.org/Geary/",
+      "license": "LGPL-2.1-or-later",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/ge/geary/package.nix",
+      "kind": "package",
+      "backend": "nixpkgs",
+      "package": "geary",
+      "proprietary": false,
+      "group": "Mail",
+      "icon": "geary"
+    },
+    {
+      "id": "evolution",
+      "name": "Evolution",
+      "version": "3.60.2",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "default": false,
+      "description": "Mail, calendar and contacts. Proton needs Bridge; Evolution is not officially supported by Proton.",
+      "url": "https://apps.gnome.org/Evolution/",
+      "license": "LGPL-2.0-or-later",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/applications/networking/mailreaders/evolution/evolution/default.nix",
+      "kind": "package",
+      "backend": "nixpkgs",
+      "package": "evolution",
+      "proprietary": false,
+      "group": "Mail",
+      "icon": "evolution"
+    }
+  ]
+}

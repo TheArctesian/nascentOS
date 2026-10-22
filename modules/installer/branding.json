@@ -1,0 +1,36 @@
+{
+  "componentName": "nascent",
+  "welcomeStyleCalamares": false,
+  "welcomeExpandingLogo": false,
+  "windowExpanding": "normal",
+  "windowSize": "900px,640px",
+  "windowPlacement": "center",
+  "sidebar": "widget",
+  "navigation": "widget",
+  "strings": {
+    "productName": "nascentOS",
+    "shortProductName": "nascentOS",
+    "version": "prototype",
+    "shortVersion": "prototype",
+    "versionedName": "nascentOS prototype",
+    "shortVersionedName": "nascentOS",
+    "bootloaderEntryName": "nascentOS",
+    "productUrl": "",
+    "supportUrl": "",
+    "knownIssuesUrl": "",
+    "releaseNotesUrl": ""
+  },
+  "images": {
+    "productIcon": "main-logo.png",
+    "productLogo": "main-logo.png",
+    "productWelcome": "main-logo.png"
+  },
+  "style": {
+    "SidebarBackground": "#2e3440",
+    "SidebarText": "#eceff4",
+    "SidebarTextCurrent": "#2e3440",
+    "SidebarBackgroundCurrent": "#88c0d0"
+  },
+  "slideshow": ["main-logo.png"],
+  "uploadServer": {"type": "none"}
+}

@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# nascent:summary=Select and run user-owned provider adapters
+set -euo pipefail
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/nascentos"
+adapters="$config_dir/agents"
+valid_name() { [[ $1 =~ ^[a-zA-Z0-9_-]+$ ]]; }
+current() {
+  local selected
+  if [[ -f $config_dir/agent ]]; then
+    IFS= read -r selected < "$config_dir/agent" || true
+    if [[ -n ${selected:-} ]] && valid_name "$selected"; then printf '%s\n' "$selected"; fi
+  fi
+}
+case "${1:---help}" in
+  init)
+    defaults="${NASCENT_DATA_DIR:-/etc/nascentos}/agent-adapters"
+    [[ -d $defaults ]] || exit 0
+    mkdir -p "$adapters"
+    for name in codex opencode; do
+      source_adapter="$defaults/$name"
+      destination="$adapters/$name"
+      [[ -f $source_adapter ]] || continue
+      [[ ! -e $destination && ! -L $destination ]] || continue
+      temporary=$(mktemp "$adapters/.$name.XXXXXX")
+      trap 'rm -f "$temporary"' EXIT
+      cp -L "$source_adapter" "$temporary"
+      chmod 700 "$temporary"
+      # Exclusive linking also preserves a personal file created during startup.
+      if ! ln -T "$temporary" "$destination" 2>/dev/null; then
+        [[ -e $destination || -L $destination ]] || { echo "Cannot seed adapter: $destination" >&2; exit 1; }
+      fi
+      rm -f "$temporary"
+      trap - EXIT
+    done
+    ;;
+  list)
+    shopt -s nullglob
+    for adapter in "$adapters"/*; do
+      name=${adapter##*/}
+      if [[ -f $adapter && -x $adapter ]] && valid_name "$name"; then printf '%s\n' "$name"; fi
+    done
+    ;;
+  current) current ;;
+  set)
+    if [[ $# != 2 ]] || ! valid_name "$2"; then echo 'Usage: nascent agent set NAME' >&2; exit 2; fi
+    [[ -f $adapters/$2 && -x $adapters/$2 ]] || { echo "Missing executable adapter: $adapters/$2" >&2; exit 1; }
+    mkdir -p "$config_dir"
+    temporary=$(mktemp "$config_dir/.agent.XXXXXX")
+    trap 'rm -f "$temporary"' EXIT
+    printf '%s\n' "$2" > "$temporary"
+    mv -f "$temporary" "$config_dir/agent"
+    ;;
+  run)
+    shift
+    selected=$(current)
+    [[ -n $selected ]] || { echo "Add an executable adapter in $adapters, then run nascent agent set NAME." >&2; exit 1; }
+    [[ -f $adapters/$selected && -x $adapters/$selected ]] || { echo "Selected adapter is missing: $selected" >&2; exit 1; }
+    exec "$adapters/$selected" "$@"
+    ;;
+  *) echo 'Usage: nascent agent init|list|current|set NAME|run [ARGS...]' ;;
+esac

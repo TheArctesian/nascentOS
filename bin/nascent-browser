@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# nascent:summary=Open the selected browser, or the user's desktop default
+set -euo pipefail
+browser=$(python3 -c 'import json,sys; from pathlib import Path; p=Path(sys.argv[1]); print(json.loads(p.read_text()).get("browser") or "default" if p.exists() else "firefox")' "${NASCENT_DATA_DIR:-/etc/nascentos}/software-runtime.json")
+case "$browser" in
+  firefox) exec firefox "$@" ;;
+  chromium) exec chromium "$@" ;;
+  default)
+    desktop=$(xdg-settings get default-web-browser)
+    if [[ -n $desktop ]]; then exec gtk-launch "$desktop" "$@"; fi
+    exec xdg-open "${1:-about:blank}"
+    ;;
+  *) echo 'No recognized browser is configured. Choose a browser in your desktop settings.' >&2; exit 2 ;;
+esac

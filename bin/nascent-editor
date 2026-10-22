@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# nascent:summary=Bootstrap the user's LazyVim configuration without overwriting it
+set -euo pipefail
+editor=$(python3 -c 'import json,sys; from pathlib import Path; p=Path(sys.argv[1]); print(json.loads(p.read_text()).get("editor") or "none" if p.exists() else "neovim")' "${NASCENT_DATA_DIR:-/etc/nascentos}/software-runtime.json")
+if [[ $editor != neovim ]]; then
+  if [[ ${1:-} == init ]]; then exit 0; fi
+  case "$editor" in
+    zed) exec zeditor "$@" ;;
+    vscodium) exec codium "$@" ;;
+    cursor) exec cursor "$@" ;;
+    *) echo 'No editor was selected. Install an editor or select one in your system configuration.' >&2; exit 2 ;;
+  esac
+fi
+config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+if [[ ! -e $config_home/nvim && ! -L $config_home/nvim ]]; then
+  mkdir -p "$config_home"
+  cp -RL "${NASCENT_DATA_DIR:-/etc/nascentos}/nvim" "$config_home/nvim"
+  chmod -R u+w "$config_home/nvim"
+fi
+if [[ ${1:-} == init ]]; then exit 0; fi
+exec nvim "$@"

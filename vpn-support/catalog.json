@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "nixpkgsRevision": "cd4ea8d57de16f4810bc5f14207bac45fbf19f67",
+  "selection": "single-optional",
+  "default": null,
+  "providers": [
+    {"id": "mullvad", "name": "Mullvad VPN", "package": "mullvad-vpn", "version": "2026.3", "backend": "nixpkgs", "platforms": ["x86_64-linux", "aarch64-linux"], "description": "Official GUI and daemon. Paid account; connect after installation.", "url": "https://mullvad.net/en/help/using-mullvad-vpn-app"},
+    {"id": "proton", "name": "Proton VPN", "package": "proton-vpn", "version": "4.15.3", "backend": "nixpkgs", "platforms": ["x86_64-linux", "aarch64-linux"], "description": "Official GTK client via NetworkManager and shared Secret Service. Free or paid account; NixOS/Hyprland is outside upstream's supported distribution list. Split tunneling is not integrated here.", "url": "https://protonvpn.com/support/linux-vpn-setup"},
+    {"id": "ivpn", "name": "IVPN", "package": "ivpn-ui", "version": "3.15.6", "backend": "nixpkgs", "platforms": ["x86_64-linux"], "description": "Official GUI and daemon. Paid account. Pinned GUI is x86 only; service changes reverse-path filtering to loose.", "url": "https://www.ivpn.net/apps-linux/"},
+    {"id": "networkmanager", "name": "Import WireGuard / OpenVPN", "package": "networkmanagerapplet", "backend": "nixpkgs", "platforms": ["x86_64-linux", "aarch64-linux"], "description": "Import your own profile after installation. No automatic kill switch or provider-specific features.", "url": "https://networkmanager.dev/docs/api/latest/nmcli.html"}
+  ]
+}

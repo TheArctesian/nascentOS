@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# nascent:summary=Route a spoken-file or text command to bounded desktop tools
+set -euo pipefail
+exec python3 "${NASCENT_DATA_DIR:-/etc/nascentos}/desktop_intent.py" "$@"

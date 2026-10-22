@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# nascent:summary=Select a persistent wallpaper from your own files
+set -euo pipefail
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/nascentos"
+
+case "${1:---help}" in
+  run)
+    if [[ -L $config_dir/wallpaper ]]; then
+      exec swaybg --image "$config_dir/wallpaper" --mode fill
+    fi
+    exec swaybg --image "${NASCENT_DATA_DIR:-/etc/nascentos}/wallpapers/home1-nord.png" --mode fit --color '#2e3440'
+    ;;
+  fetch)
+    [[ $# == 2 && $2 =~ ^(1080x1920|2560x1440|3024x1964)/[a-zA-Z0-9_-]+[.]png$ ]] || {
+      echo 'Usage: nascent wallpaper fetch GEOMETRY/NAME.png (see docs/personalization.md)' >&2; exit 2;
+    }
+    destination="${XDG_DATA_HOME:-$HOME/.local/share}/nascentos/wallpapers/$2"
+    mkdir -p "$(dirname "$destination")"
+    temporary=$(mktemp "$(dirname "$destination")/.download.XXXXXX")
+    trap 'rm -f "$temporary"' EXIT
+    curl --fail --location --proto '=https' --output "$temporary" \
+      "https://raw.githubusercontent.com/TheArctesian/wallpapers/2105e063afd839fdd06b47eaf426716fcffa21b4/screens/$2"
+    mv -f "$temporary" "$destination"
+    exec nascent-wallpaper set "$destination"
+    ;;
+  set)
+    [[ $# == 2 && -f $2 ]] || { echo 'Usage: nascent wallpaper set /absolute/path/to/image' >&2; exit 2; }
+    image=$(realpath "$2")
+    mkdir -p "$config_dir"
+    if [[ -e $config_dir/wallpaper && ! -L $config_dir/wallpaper ]]; then
+      echo "Refusing to replace a personal file: $config_dir/wallpaper" >&2; exit 1
+    fi
+    temporary=$(mktemp -d "$config_dir/.wallpaper.XXXXXX")
+    ln -s "$image" "$temporary/link"
+    mv -Tf "$temporary/link" "$config_dir/wallpaper"
+    rmdir "$temporary"
+    if [[ -n ${WAYLAND_DISPLAY:-} ]]; then systemctl --user try-restart nascent-wallpaper.service; fi
+    ;;
+  *) echo 'Usage: nascent wallpaper set /absolute/path/to/image' ;;
+esac

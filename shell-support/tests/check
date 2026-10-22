@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+nix=/nix/var/nix/profiles/default/bin/nix
+if [[ ! -x $nix ]]; then
+  echo 'Environment failure: install Nix at the documented location first.' >&2
+  exit 127
+fi
+export NIX_CONFIG="${NIX_CONFIG:-}
+extra-experimental-features = nix-command flakes"
+system=$($nix eval --raw --impure --expr builtins.currentSystem)
+ref=github:NixOS/nixpkgs/cd4ea8d57de16f4810bc5f14207bac45fbf19f67
+scratch=$(mktemp -d)
+trap 'rm -rf "$scratch"' EXIT
+$nix build --no-link --json \
+  "$ref#legacyPackages.$system.zsh" \
+  "$ref#legacyPackages.$system.oh-my-zsh" \
+  "$ref#legacyPackages.$system.zsh-autosuggestions" \
+  "$ref#legacyPackages.$system.zsh-syntax-highlighting" \
+  "$ref#legacyPackages.$system.nixfmt" > "$scratch/packages.json"
+formatter=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[4]["outputs"]["out"] + "/bin/nixfmt")' "$scratch/packages.json")
+"$formatter" --check shell-support/module.nix shell-support/integration.nix shell-support/flake.nix shell-support/tests/eval.nix shell-support/tests/startup-shell.nix
+$nix eval --json path:./shell-support#validation > "$scratch/eval.json"
+python3 - "$scratch/eval.json" "$scratch/packages.json" <<'PY'
+import json, pathlib, subprocess, sys, tempfile
+checks = json.load(open(sys.argv[1]))
+zsh = json.load(open(sys.argv[2]))[0]['outputs']['out'] + '/bin/zsh'
+for system, check in checks.items():
+    for key in ('zshrc', 'zshenv'):
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.zsh') as f:
+            f.write(check[key])
+            f.flush()
+            subprocess.run([zsh, '-n', f.name], check=True)
+    print(system, check['defaults'], check['versions'])
+for path in pathlib.Path('shell-support/assets').glob('*'):
+    if path.suffix in ('.zsh', '.zsh-theme') or path.name == 'zshrc':
+        subprocess.run([zsh, '-n', str(path)], check=True)
+PY
+$nix build --impure --no-link --json --expr \
+  "import ./shell-support/tests/startup-shell.nix { nixpkgs = builtins.getFlake \"$ref\"; system = \"$system\"; }" > "$scratch/startup.json"
+startup_zsh=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[0]["outputs"]["out"] + "/bin/zsh")' "$scratch/startup.json")
+NASCENT_STARTUP_ZSH="$startup_zsh" NASCENT_SHELL_PACKAGES="$scratch/packages.json" python3 shell-support/tests/runtime.py -v
+git diff --check

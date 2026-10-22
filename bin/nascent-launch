@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# nascent:summary=Launch applications with the selected desktop theme
+set -euo pipefail
+theme=$(nascent-theme path)
+case "${1:-}" in
+  terminal) shift; exec kitty --config "$theme/kitty.conf" --config "${XDG_CONFIG_HOME:-$HOME/.config}/kitty/kitty.conf" "$@" ;;
+  apps) shift; exec fuzzel --config "$theme/fuzzel.ini" "$@" ;;
+  lock) exec hyprlock --config "$theme/hyprlock.conf" ;;
+  bar) exec waybar --config "${XDG_CONFIG_HOME:-$HOME/.config}/nascentos/waybar.json" --style "$theme/waybar.css" ;;
+  notifications) exec mako --config "$theme/mako.conf" ;;
+  *) echo 'Usage: nascent launch terminal|apps|bar|notifications' >&2; exit 2 ;;
+esac

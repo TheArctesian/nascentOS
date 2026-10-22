@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+command -v nix >/dev/null || { echo 'Environment failure: provision Nix on the release runner.' >&2; exit 127; }
+actual=$(nix eval --impure --raw --expr builtins.currentSystem)
+[[ "$actual" == "$1" ]] || { echo "Native runner required: expected $1, got $actual" >&2; exit 1; }
+[[ -r /dev/kvm && -w /dev/kvm ]] || { echo 'Environment failure: accessible /dev/kvm required.' >&2; exit 1; }
+# Nix itself enforces kvm on the boot derivation; the build users also need access.
+features=$(nix config show system-features)
+[[ " $features " == *' kvm '* ]] || { echo 'Environment failure: Nix system-features must include kvm.' >&2; exit 1; }
+python3 - <<'PY'
+import shutil
+for path in ('.', '/nix/store'):
+    if shutil.disk_usage(path).free < 80 * 1024**3:
+        raise SystemExit(f'Environment failure: at least 80 GiB free required on {path}')
+PY

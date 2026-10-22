@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+if ! command -v nix >/dev/null 2>&1; then
+  if [[ -x /nix/var/nix/profiles/default/bin/nix ]]; then
+    export PATH="/nix/var/nix/profiles/default/bin:$PATH"
+  else
+    echo "Environment failure: install Nix, then rerun scripts/check (see README.md)." >&2
+    exit 127
+  fi
+fi
+export NIX_CONFIG="${NIX_CONFIG:-}
+extra-experimental-features = nix-command flakes"
+# Git flakes exclude ignored VM state; add new source files to Git before evaluation.
+system=$(nix eval --impure --raw --expr builtins.currentSystem)
+files=()
+while IFS= read -r -d '' file; do files+=("$file"); done < <(find flake.nix modules hosts tests installer appimage-support gaming-support mail-support password-support vpn-support installer-design shell-support -name '*.nix' -type f -print0)
+nix run ".#formatter.$system" -- --check "${files[@]}"
+nix flake check --no-build --all-systems .
+nix build --no-link ".#checks.$system.cli"
+printf '%s\n' 'Evaluation passed. Linux boot and graphical VM checks are separate; see docs/testing.md.'

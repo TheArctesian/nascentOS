@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Run only the disposable task-local ARM installation test disk.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+if [[ $(uname -sm) != 'Darwin arm64' ]]; then
+  echo 'This launcher targets Apple Silicon macOS with native QEMU/HVF.' >&2; exit 1
+fi
+qemu="$PWD/.vm/qemu"
+instance=${NASCENT_VM_INSTANCE:-install-test}
+case "$instance" in
+  install-test) port=22222; display=cocoa; memory=8192 ;;
+  install-verify) port=22223; display=none; memory=6144 ;;
+  *) echo 'NASCENT_VM_INSTANCE must be install-test or install-verify.' >&2; exit 2 ;;
+esac
+state="$PWD/.vm/$instance"
+disk_priority=1
+cd_priority=2
+if [[ ${1:-} == --live ]]; then
+  # Explicit development override for testing a newer ISO against an existing disk.
+  disk_priority=2
+  cd_priority=1
+  shift
+fi
+mkdir -p "$state"
+if [[ ! -x $qemu/bin/qemu-system-aarch64 ]]; then
+  echo 'Fetch the pinned native QEMU first; see docs/vm-install-test.md.' >&2; exit 1
+fi
+if [[ -f $state/qemu.pid ]] && kill -0 "$(cat "$state/qemu.pid")" 2>/dev/null; then
+  echo 'The task-local test VM is already running.' >&2; exit 1
+fi
+if [[ ! -e $state/target.qcow2 ]]; then
+  if [[ ${1:-} == --installed ]]; then echo 'No installed test disk exists.' >&2; exit 1; fi
+  "$qemu/bin/qemu-img" create -f qcow2 "$state/target.qcow2" 48G
+fi
+if [[ ! -e $state/efi-vars.fd ]]; then
+  cp "$qemu/share/qemu/edk2-arm-vars.fd" "$state/efi-vars.fd"
+  chmod u+w "$state/efi-vars.fd"
+fi
+# macOS ships Bash 3.2, whose nounset treats an empty array as unset.
+media=( -boot menu=on )
+if [[ ${1:-} != --installed ]]; then
+  [[ $# == 1 && -f $1 ]] || { echo 'Usage: scripts/run-installer-vm [--live] ISO | --installed' >&2; exit 2; }
+  iso=$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1")
+  media+=( -device "virtio-scsi-pci,id=scsi0"
+    -drive "if=none,id=cdrom,media=cdrom,readonly=on,file=$iso"
+    -device "scsi-cd,drive=cdrom,bus=scsi0.0,bootindex=$cd_priority" )
+fi
+exec "$qemu/bin/qemu-system-aarch64" \
+  -name "nascentOS-$instance" \
+  -machine virt -accel hvf -cpu host -m "$memory" -smp 4 \
+  -drive "if=pflash,format=raw,readonly=on,file=$qemu/share/qemu/edk2-aarch64-code.fd" \
+  -drive "if=pflash,format=raw,file=$state/efi-vars.fd" \
+  -device virtio-gpu-pci \
+  -device qemu-xhci -device usb-kbd -device usb-tablet \
+  -drive "if=none,id=target,format=qcow2,file=$state/target.qcow2" \
+  -device "virtio-blk-pci,drive=target,bootindex=$disk_priority" \
+  -netdev "user,id=net0,hostfwd=tcp:127.0.0.1:$port-:22" \
+  -device virtio-net-pci,netdev=net0 \
+  -display "$display" \
+  -qmp "unix:$state/qmp.sock,server=on,wait=off" \
+  -chardev "socket,id=serial0,path=$state/serial.sock,server=on,wait=off,logfile=$state/serial.log" \
+  -serial chardev:serial0 \
+  -pidfile "$state/qemu.pid" \
+  "${media[@]}"

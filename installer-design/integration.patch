@@ -1,0 +1,26 @@
+--- a/modules/installer/default.nix
++++ b/modules/installer/default.nix
+@@ -6,6 +6,7 @@
+   ...
+ }:
+ let
++  installerDesign = import ../../installer-design/integration.nix { inherit pkgs; };
+   extensions = pkgs.calamares-nixos-extensions.overrideAttrs (old: {
+     nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.python3 ];
+     postPatch = (old.postPatch or "") + ''
+@@ -31,13 +32,13 @@
+           name: nascentOS
+           description: "Nord Hyprland desktop, writable LazyVim, agent tools and optional local inference."
+       CONFIG
+-    '';
++    '' + installerDesign.extensionPostPatch;
+   });
+   installer =
+     (pkgs.calamares-nixos.override {
+       calamares-nixos-extensions = extensions;
+     }).overrideAttrs
+-      (old: {
++      (old: (installerDesign.installerAttrs old) // {
+         qtWrapperArgs = (old.qtWrapperArgs or [ ]) ++ [
+           "--set QT_QPA_PLATFORM xcb"
+           "--set QT_STYLE_OVERRIDE kvantum"

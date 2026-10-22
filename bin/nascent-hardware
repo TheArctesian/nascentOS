@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# nascent:summary=Review detected hardware and generate a selectable NixOS profile
+set -euo pipefail
+exec python3 "${NASCENT_DATA_DIR:-/etc/nascentos}/hardware.py" "$@"

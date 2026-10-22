@@ -1,0 +1,38 @@
+/* Scoped to the installer process; the live desktop keeps its Nordic theme. */
+QWidget#mainApp { background: #2e3440; color: #eceff4; }
+QWidget#sidebarApp { background: #2e3440; border-right: 1px solid #434c5e; }
+QWidget#viewManager, QWidget#slideshow { background: #2e3440; }
+QListView#sidebarMenuApp { background: #2e3440; border: none; outline: none; }
+QLabel#nascentProductName { color: #eceff4; font-size: 16px; font-weight: 600; }
+QPushButton {
+    color: #eceff4; background: #3b4252; border: 1px solid #4c566a;
+    border-radius: 6px; min-height: 20px; padding: 8px 16px;
+}
+QPushButton:hover { background: #434c5e; border-color: #81a1c1; }
+QPushButton:pressed { background: #4c566a; }
+QPushButton:disabled { color: #a2aab8; background: #343b49; border-color: #434c5e; }
+QPushButton:focus, QToolButton:focus { border: 2px solid #88c0d0; }
+QPushButton#view-button-next:enabled { color: #2e3440; background: #88c0d0; border-color: #88c0d0; }
+QPushButton#view-button-next:enabled:hover { background: #8fbcbb; }
+QPushButton#aboutButton, QPushButton#debugButton { background: transparent; border-color: transparent; }
+QLineEdit, QComboBox, QSpinBox {
+    color: #eceff4; background: #3b4252; border: 1px solid #4c566a;
+    border-radius: 5px; min-height: 20px; padding: 7px 10px;
+}
+QLineEdit:focus, QComboBox:focus, QSpinBox:focus { border-color: #88c0d0; }
+QCheckBox, QRadioButton { spacing: 8px; min-height: 28px; }
+QLabel#exec-message { color: #d8dee9; min-height: 24px; }
+QTabWidget#nascentExecutionTabs::pane { border: none; background: transparent; }
+QProgressBar#exec-progress {
+    border: none; background: #434c5e; border-radius: 3px;
+    min-height: 6px; max-height: 6px;
+}
+QProgressBar#exec-progress::chunk { background: #88c0d0; border-radius: 3px; }
+QLabel#nascentProgressValue { color: #eceff4; min-width: 42px; }
+QToolBar#nascentLogToolbar { border: none; spacing: 0px; padding: 0px; }
+QToolBar#nascentLogToolbar QToolButton {
+    color: #d8dee9; background: transparent; border: 1px solid transparent;
+    border-radius: 5px; min-width: 28px; min-height: 28px; padding: 4px;
+}
+QToolBar#nascentLogToolbar QToolButton:hover { background: #434c5e; }
+QLabel#nascentPageTitle { color: #eceff4; font-size: 26px; font-weight: 600; }

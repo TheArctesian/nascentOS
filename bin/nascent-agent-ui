@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# nascent:summary=Open an available agent or show graphical setup guidance
+set -euo pipefail
+
+info() {
+  GSK_RENDERER=cairo zenity --info --no-markup --title='nascentOS Agent' --width=440 --text="$1" || true
+}
+
+if ! available=$(nascent-agent list); then
+  info 'Agent settings could not be read. Please try again after checking your agent setup.'
+  exit 0
+fi
+adapters=()
+while IFS= read -r name; do
+  if [[ $name =~ ^[a-zA-Z0-9_-]+$ ]]; then adapters+=("$name"); fi
+done <<< "$available"
+
+if [[ ${#adapters[@]} == 0 ]]; then
+  info 'No agent is configured
+
+An agent provider needs to be installed and configured before you can use Agent. You can continue exploring the desktop or install nascentOS. No provider is selected automatically.'
+  exit 0
+fi
+
+selected=$(nascent-agent current)
+found=false
+for name in "${adapters[@]}"; do
+  if [[ $selected == "$name" ]]; then found=true; break; fi
+done
+if [[ $found == false ]]; then
+  if ! selected=$(GSK_RENDERER=cairo zenity --list --no-markup --title='Choose an agent' --width=440 --height=340 \
+    --text='Choose an available agent adapter. Its provider must already be installed and configured.' \
+    --column='Agent' "${adapters[@]}"); then
+    exit 0
+  fi
+  found=false
+  for name in "${adapters[@]}"; do
+    if [[ $selected == "$name" ]]; then found=true; break; fi
+  done
+  if [[ $found == false ]]; then
+    info 'That agent is unavailable. Open Agent again to choose an available adapter.'
+    exit 0
+  fi
+  if ! nascent-agent set "$selected"; then
+    info 'The selected agent could not be saved. Check that its adapter is still available, then try again.'
+    exit 0
+  fi
+fi
+exec nascent-launch terminal nascent-agent run

@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# nascent:summary=Open a small discoverable desktop command menu
+set -euo pipefail
+theme=$(nascent-theme path)
+items=('Applications' 'Terminal' 'Theme: Nord' 'Theme: Tokyo Night' 'Agent' 'Lock' 'Log out')
+if command -v nascent-install >/dev/null 2>&1; then items=('Install nascentOS' "${items[@]}"); fi
+choice=$(printf '%s\n' "${items[@]}" |
+  fuzzel --config "$theme/fuzzel.ini" --dmenu --prompt 'Search menu > ') || exit 0
+case "$choice" in
+  'Install nascentOS') exec nascent-install ;;
+  Applications) exec nascent-launch apps ;;
+  Terminal) exec nascent-launch terminal ;;
+  'Theme: Nord') exec nascent-theme set nord ;;
+  'Theme: Tokyo Night') exec nascent-theme set tokyo-night ;;
+  Agent) exec nascent-agent-ui ;;
+  Lock) exec nascent-launch lock ;;
+  'Log out') exec hyprctl dispatch 'hl.dsp.exit()' ;;
+esac

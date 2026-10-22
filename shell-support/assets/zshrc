@@ -1,0 +1,5 @@
+# Personal Zsh configuration. NixOS loads Oh My Zsh and the Boxfish port first.
+# This file and ~/.config/nascentos/zsh/boxfish.zsh-theme are yours to edit.
+# To enable Boxfish's one-character vi mode indicator, uncomment:
+# bindkey -v
+# NASCENT_BOXFISH_VI=1
