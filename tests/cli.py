@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 
 root = Path(os.environ['NASCENT_SOURCE'])
+bash_shebang = '#!' + shutil.which('bash') + '\n'
 with tempfile.TemporaryDirectory() as temporary:
     home = Path(temporary)
     data = home / 'data'
@@ -62,7 +63,7 @@ with tempfile.TemporaryDirectory() as temporary:
     shipped = data / 'agent-adapters'
     shipped.mkdir()
     shipped_codex = shipped / 'codex'
-    shipped_codex.write_text('#!/usr/bin/env bash\nexec codex "$@"\n')
+    shipped_codex.write_text(bash_shebang + 'exec codex "$@"\n')
     shipped_codex.chmod(0o444)
     # An unselected/unshipped tool is never manufactured by init.
     run('agent', 'init')
@@ -72,8 +73,8 @@ with tempfile.TemporaryDirectory() as temporary:
     assert seeded_codex.stat().st_mode & 0o200 and seeded_codex.stat().st_mode & 0o100
     assert run('agent', 'list') == 'codex'
     assert run('agent', 'current') == ''
-    seeded_codex.write_text('#!/usr/bin/env bash\nprintf "personal adapter\\n"\n')
-    (shipped / 'opencode').write_text('#!/usr/bin/env bash\nexec opencode "$@"\n')
+    seeded_codex.write_text(bash_shebang + 'printf "personal adapter\\n"\n')
+    (shipped / 'opencode').write_text(bash_shebang + 'exec opencode "$@"\n')
     (adapters / 'opencode').symlink_to(adapters / 'missing-personal-target')
     run('agent', 'init')
     assert 'personal adapter' in seeded_codex.read_text()
@@ -83,7 +84,7 @@ with tempfile.TemporaryDirectory() as temporary:
     provider_bin = home / 'provider-fixtures'
     provider_bin.mkdir()
     provider = provider_bin / 'codex'
-    provider.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$@"\n')
+    provider.write_text(bash_shebang + 'printf "%s\\n" "$@"\n')
     provider.chmod(0o755)
     env['PATH'] = str(provider_bin) + ':' + env['PATH']
     seeded_codex.unlink()
@@ -93,7 +94,7 @@ with tempfile.TemporaryDirectory() as temporary:
     run('agent', 'init')
     assert run('agent', 'current') == 'codex'
     adapter = adapters / 'test'
-    adapter.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$@"\n')
+    adapter.write_text(bash_shebang + 'printf "%s\\n" "$@"\n')
     adapter.chmod(0o755)
     run('agent', 'set', 'test')
     assert run('agent', 'run', 'a b', '$(false)', '--flag') == 'a b\n$(false)\n--flag'

@@ -77,7 +77,11 @@
                 ];
               }
               ''
-                export NASCENT_SOURCE=${self}
+                # Raw repository scripts need store interpreters inside the Linux sandbox.
+                cp -r ${self} source
+                chmod -R u+w source
+                patchShebangs source/bin
+                export NASCENT_SOURCE=$PWD/source
                 export NIXPKGS_SOURCE=${nixpkgs}
                 shellcheck ${self}/bin/* ${self}/scripts/*
                 # Preserve the approved renderer; its POSIX empty CDPATH assignment is intentional.
