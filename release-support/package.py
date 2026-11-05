@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create bounded GitHub Release assets with a whole-image identity."""
+"""Package an installer ISO with its source lock, manifest and checksums."""
 import argparse
 import hashlib
 import json
@@ -7,7 +7,6 @@ from pathlib import Path
 import re
 import shutil
 
-PART_BYTES = 1024**3  # Strictly below GitHub's per-asset 2 GiB limit.
 SYSTEMS = ('aarch64-linux', 'x86_64-linux')
 
 
@@ -16,8 +15,7 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
-def package(iso, lock, output, tag, revision, system, store_path, part_bytes=PART_BYTES,
-            nixos_boot='not-run'):
+def package(iso, lock, output, tag, revision, system, store_path, nixos_boot='not-run'):
     if system not in SYSTEMS or not re.fullmatch(r'[0-9a-f]{40}', revision):
         raise ValueError('Invalid system or source revision')
     if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9][A-Za-z0-9.-]*)?', tag):
@@ -32,21 +30,8 @@ def package(iso, lock, output, tag, revision, system, store_path, part_bytes=PAR
     output.mkdir(parents=True, exist_ok=False)
     stem = f'nascentos-{tag}-{system}'
     image_name = f'{stem}.iso'
-    assets = []
-    if iso.stat().st_size <= part_bytes:
-        shutil.copyfile(iso, output / image_name)
-        assets.append(output / image_name)
-    else:
-        with iso.open('rb') as source:
-            index = 0
-            while True:
-                chunk = source.read(part_bytes)
-                if not chunk:
-                    break
-                target = output / f'{image_name}.part{index:04d}'
-                target.write_bytes(chunk)
-                assets.append(target)
-                index += 1
+    shutil.copyfile(iso, output / image_name)
+    assets = [output / image_name]
     lock_name = f'{stem}.flake.lock'
     shutil.copyfile(lock, output / lock_name)
     manifest = {

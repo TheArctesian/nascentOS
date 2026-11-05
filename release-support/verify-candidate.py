@@ -8,20 +8,20 @@ import sys
 from package import digest, SYSTEMS
 
 
-def verify(directory, tag, revision, systems=SYSTEMS):
+def verify(directory, tag, revision, systems=SYSTEMS, base_url=None):
     directory = Path(directory)
     if not systems or len(set(systems)) != len(systems) or set(systems) - set(SYSTEMS):
         raise ValueError('Invalid expected architectures')
     expected = set()
     notes = [f'# nascentOS {tag} preview', '', f'Source commit: `{revision}`.', '',
              'Automated source/CLI checks, configuration/profile checks and the production installer ISO build passed.',
-             '**Not release ready:** this is an experimental prerelease, not a stable hardware installer.',
+             '**Not release ready:** this is an experimental preview built from `main`, not a stable hardware installer.',
              'Only the architectures listed below are included. No unbuilt x86 image is advertised.',
              'The earlier ARM development image passed graphical installation, installed-disk boot, password login,',
              'selected-app/keyring checks and logout; that evidence does not certify this new ISO hash.',
              'See docs/validation.md for the exact tested development-image identity.',
              'Graphical installation of these release bytes, physical graphics/firmware, audio and suspend remain unverified.', '',
-             'Download every image part and the matching lock, manifest and SHA256SUMS file.', '']
+             'Download the ISO with its matching lock, manifest and SHA256SUMS file.', '']
     lock_hashes = set()
     for system in systems:
         stem = f'nascentos-{tag}-{system}'
@@ -66,16 +66,14 @@ def verify(directory, tag, revision, systems=SYSTEMS):
             raise ValueError('Lock identity mismatch')
         lock_hashes.add(manifest['flake_lock_sha256'])
         expected.update(checked)
-        notes.extend([f'## {system}', '', f'ISO SHA-256: `{image["sha256"]}`.', '',
+        notes.extend([f'## {system}', ''])
+        if base_url:
+            notes.extend([f'Download: {base_url}/{tag}/{image["name"]}', ''])
+        notes.extend([f'ISO SHA-256: `{image["sha256"]}`.', '',
                       f'Output: `{manifest["nix_output"]}` (normal production compression).',
                       f'Native NixOS boot test: **{manifest["gates"]["nixos_boot"]}**.', ''])
-        if len(image['parts']) > 1:
-            notes.extend(['Download all numbered parts, then reconstruct in order:', '', '```sh',
-                          f'cat {image["name"]}.part* > {image["name"]}', '```', ''])
         notes.extend(['Verify the downloaded assets (Linux; use `shasum -a 256 -c` on macOS):', '', '```sh',
                       f'sha256sum -c {stem}.SHA256SUMS', '```', ''])
-        notes.extend(['Verify the reconstructed whole ISO:', '', '```sh',
-                      f'echo "{image["sha256"]}  {image["name"]}" | sha256sum -c -', '```', ''])
     if len(lock_hashes) != 1:
         raise ValueError('Architectures used different flake locks')
     if {p.name for p in directory.iterdir()} != expected:
@@ -89,5 +87,7 @@ if __name__ == '__main__':
     parser.add_argument('tag')
     parser.add_argument('revision')
     parser.add_argument('--systems', nargs='+', choices=SYSTEMS, default=list(SYSTEMS))
+    parser.add_argument('--base-url', help='Public download root; adds direct links to the notes')
     args = parser.parse_args()
-    Path('release-notes.md').write_text(verify(args.directory, args.tag, args.revision, args.systems))
+    Path('release-notes.md').write_text(
+        verify(args.directory, args.tag, args.revision, args.systems, args.base_url))

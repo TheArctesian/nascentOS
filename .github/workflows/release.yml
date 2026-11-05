@@ -1,18 +1,19 @@
 name: Build and publish installer ISOs
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+    # Docs-only pushes don't change the image; skip the build (the count still advances).
+    paths-ignore: ['**.md', 'docs/**', 'installer-design/previews/**']
   workflow_dispatch:
-    inputs:
-      tag:
-        description: Existing version tag (vMAJOR.MINOR.PATCH)
-        required: true
-        type: string
 permissions:
   contents: read
+# One publish at a time; a newer push replaces any queued (not running) build.
 concurrency:
-  group: release-${{ inputs.tag || github.ref_name }}
+  group: iso-main
   cancel-in-progress: false
+env:
+  R2_BUCKET: nascentos-iso
+  R2_PUBLIC_URL: https://iso.stephenokita.com
 jobs:
   build:
     strategy:
@@ -23,8 +24,8 @@ jobs:
             runner: ubuntu-24.04-arm
           - system: x86_64-linux
             runner: ubuntu-24.04
-    # ARM is required; an x86 failure must not advertise an unbuilt x86 image.
-    continue-on-error: ${{ matrix.system == 'x86_64-linux' }}
+    # Either architecture may fail; the publisher only advertises bundles that exist.
+    continue-on-error: true
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 180
     outputs:
@@ -39,16 +40,10 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # The version is the first-parent commit count.
           persist-credentials: false
       - id: source
-        env:
-          TAG: ${{ inputs.tag || github.ref_name }}
-        run: python3 release-support/resolve.py "$TAG" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          ref: ${{ steps.source.outputs.revision }}
-          persist-credentials: false
+        run: python3 release-support/version.py HEAD >> "$GITHUB_OUTPUT"
       - name: Reclaim unused toolchains on this disposable runner
         run: |
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
@@ -74,11 +69,11 @@ jobs:
         run: ./release-support/verify
       - name: Source, CLI and configuration/profile checks
         run: |
-          ./scripts/check
-          nix build -L --no-link ".#checks.$SYSTEM.installer" ".#checks.$SYSTEM.profiles"
+          ./release-support/memory-watch ./scripts/check
+          ./release-support/memory-watch nix build -L --no-link ".#checks.$SYSTEM.installer" ".#checks.$SYSTEM.profiles"
       - name: Build normal production ISO (not installer-dev)
         run: |
-          nix build -L --no-update-lock-file ".#packages.$SYSTEM.installer" --out-link result-installer
+          ./release-support/memory-watch nix build -L --no-update-lock-file ".#packages.$SYSTEM.installer" --out-link result-installer
           git diff --exit-code HEAD -- flake.lock
       - name: Optional native boot test when this runner actually exposes KVM
         id: boot
@@ -114,10 +109,10 @@ jobs:
           retention-days: 1
   publish:
     needs: build
+    # Only main may publish; a manual run on another branch would reuse main's version numbers.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    permissions:
-      contents: write
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -128,27 +123,36 @@ jobs:
           pattern: installer-*
           merge-multiple: true
           path: candidate
-      - name: Verify exact source and all image parts
+      - uses: cachix/install-nix-action@3c6342b75005b9cc7c7d4069c3e9179247c89012 # v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: Verify exact source and every built image
+        id: verify
         env:
           TAG: ${{ needs.build.outputs.tag }}
           REVISION: ${{ needs.build.outputs.revision }}
         run: |
-          systems=(aarch64-linux)
-          if [[ -f candidate/nascentos-$TAG-x86_64-linux.manifest.json ]]; then systems+=(x86_64-linux); fi
-          python3 release-support/verify-candidate.py candidate "$TAG" "$REVISION" --systems "${systems[@]}"
-      - name: Upload, verify GitHub asset digests and publish prerelease
+          systems=()
+          for system in aarch64-linux x86_64-linux; do
+            if [[ -f candidate/nascentos-$TAG-$system.manifest.json ]]; then systems+=("$system"); fi
+          done
+          if (( ${#systems[@]} == 0 )); then echo 'No architecture built; nothing to publish.' >&2; exit 1; fi
+          python3 release-support/verify-candidate.py candidate "$TAG" "$REVISION" \
+            --systems "${systems[@]}" --base-url "$R2_PUBLIC_URL"
+          cp release-notes.md candidate/NOTES.md
+          echo "systems=${systems[*]}" >> "$GITHUB_OUTPUT"
+      - name: Upload to R2 and advance latest
         env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.build.outputs.tag }}
-          REVISION: ${{ needs.build.outputs.revision }}
+          SYSTEMS: ${{ steps.verify.outputs.systems }}
+          RCLONE_CONFIG_R2_TYPE: s3
+          RCLONE_CONFIG_R2_PROVIDER: Cloudflare
+          RCLONE_CONFIG_R2_NO_CHECK_BUCKET: 'true'
+          RCLONE_CONFIG_R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          RCLONE_CONFIG_R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: |
-          test "$(gh api "repos/$GH_REPO/commits/$TAG" --jq .sha)" = "$REVISION"
-          gh release create "$TAG" --verify-tag --draft --prerelease \
-            --title "nascentOS $TAG — installer preview" --notes-file release-notes.md
-          gh release upload "$TAG" candidate/*
-          # Drafts are not returned by the REST get-release-by-tag endpoint.
-          release_api=$(gh release view "$TAG" --json apiUrl --jq .apiUrl)
-          gh api "$release_api" > uploaded-release.json
-          python3 release-support/verify-remote.py candidate uploaded-release.json
-          gh release edit "$TAG" --draft=false --prerelease --latest=false
+          read -ra systems <<< "$SYSTEMS"
+          nix shell --inputs-from . nixpkgs#rclone -c ./release-support/publish-r2 candidate "$TAG" "${systems[@]}"
+          cat release-notes.md >> "$GITHUB_STEP_SUMMARY"

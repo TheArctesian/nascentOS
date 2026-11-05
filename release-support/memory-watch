@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Run a command while watching memory. Hosted runners that exhaust RAM+swap are killed and
+# report only "The operation was canceled"; this emits an explicit error annotation first.
+# Usage: memory-watch COMMAND [ARGS...]   Env: MEMORY_WATCH_MIN_MIB (default 1024).
+set -euo pipefail
+threshold=${MEMORY_WATCH_MIN_MIB:-1024}
+lowest=$(mktemp "${RUNNER_TEMP:-/tmp}/memory-watch.XXXXXX")
+
+headroom_mib() {
+  awk '/^MemAvailable:|^SwapFree:/ { kib += $2 } END { print int(kib / 1024) }' /proc/meminfo
+}
+
+watch() {
+  local low=0 peak_low
+  peak_low=$(headroom_mib)
+  while sleep 5; do
+    local now
+    now=$(headroom_mib)
+    (( now < peak_low )) && peak_low=$now
+    if (( now < threshold && !low )); then
+      low=1
+      echo "::error title=Runner memory exhausted::Only ${now} MiB of RAM+swap left (threshold ${threshold} MiB). If this job is then canceled with 'The runner has received a shutdown signal', the cause is out-of-memory, not a manual cancel."
+      free -m
+    elif (( now >= threshold * 2 )); then
+      low=0
+    fi
+    echo "$peak_low" > "$lowest"
+  done
+}
+
+headroom_mib > "$lowest"
+watch &
+watcher=$!
+trap 'kill "$watcher" 2>/dev/null || true; rm -f "$lowest"' EXIT
+status=0
+"$@" || status=$?
+echo "Lowest RAM+swap headroom observed: $(cat "$lowest") MiB"
+exit "$status"

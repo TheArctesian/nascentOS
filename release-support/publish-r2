@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# Upload a verified candidate directory to R2 as one immutable version, then advance latest/.
+# Usage: publish-r2 CANDIDATE_DIR TAG SYSTEM...
+# Env: R2_BUCKET, R2_PUBLIC_URL, R2_KEEP (versions retained), RCLONE_CONFIG_R2_* (S3 remote "r2").
+set -euo pipefail
+shopt -s inherit_errexit
+candidate=$1 tag=$2
+shift 2
+systems=("$@")
+here=$(dirname "$0")
+number() { python3 "$here/version.py" --number "$1"; }
+field() { python3 -c 'import json,sys; d=json.load(open(sys.argv[1]))
+for k in sys.argv[2:]: d=d[k]
+print(d)' "$@"; }
+# Prints yes/no. rclone prints null for a missing object and exits non-zero on R2/network/auth
+# errors, which (with inherit_errexit, at an assignment) stops the script instead of reading as "absent".
+exists() { local out; out=$(rclone lsjson --stat --files-only "$1"); [[ $out == null ]] && echo no || echo yes; }
+tag_number=$(number "$tag")
+bucket=${R2_BUCKET:?} public=${R2_PUBLIC_URL:?} keep=${R2_KEEP:-5}
+[[ $keep =~ ^[1-9][0-9]*$ ]] || { echo 'R2_KEEP must be a positive integer' >&2; exit 1; }
+remote="r2:$bucket"
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+
+# A version is immutable: a re-run may complete a partial upload of the same bytes, never replace them.
+for system in "${systems[@]}"; do
+  manifest="nascentos-$tag-$system.manifest.json"
+  present=$(exists "$remote/$tag/$manifest")
+  if [[ $present == yes ]]; then
+    rclone copyto "$remote/$tag/$manifest" "$work/$manifest"
+    if [[ $(field "$work/$manifest" image sha256) != $(field "$candidate/$manifest" image sha256) ]]; then
+      echo "$tag/$manifest already exists with a different ISO; refusing to overwrite an immutable version." >&2
+      exit 1
+    fi
+  fi
+done
+
+rclone copy "$candidate" "$remote/$tag" --s3-chunk-size 64M --s3-upload-concurrency 8 \
+  --header-upload 'Cache-Control: public, max-age=31536000, immutable'
+rclone check "$candidate" "$remote/$tag" --one-way
+
+# rclone's multipart check uses client-written MD5 metadata, so hash what the public URL actually serves.
+for system in "${systems[@]}"; do
+  iso="nascentos-$tag-$system.iso"
+  want=$(field "$candidate/nascentos-$tag-$system.manifest.json" image sha256)
+  got=$(curl -fsSL --retry 3 "$public/$tag/$iso" | sha256sum | cut -d' ' -f1)
+  [[ $got == "$want" ]] || { echo "Public $iso hashes to $got, expected $want" >&2; exit 1; }
+  echo "Verified public $tag/$iso ($want)"
+done
+
+# A re-run of an older commit must not move latest/ backwards.
+current=v0.0.0
+present=$(exists "$remote/latest.json")
+if [[ $present == yes ]]; then
+  rclone copyto "$remote/latest.json" "$work/latest.json"
+  current=$(field "$work/latest.json" version)
+else
+  echo '{"images": {}}' > "$work/latest.json"
+fi
+if (( tag_number <= $(number "$current") )); then
+  echo "latest/ already at $current; leaving it unchanged."
+else
+  # Each ISO and its .sha256 are replaced together, so an interrupted run leaves every
+  # architecture self-consistent. Architectures not built this time keep their previous image.
+  for system in "${systems[@]}"; do
+    iso="nascentos-$tag-$system.iso"
+    sha=$(field "$candidate/nascentos-$tag-$system.manifest.json" image sha256)
+    rclone copyto "$remote/$tag/$iso" "$remote/latest/nascentos-$system.iso" -M --metadata-set cache-control=no-cache
+    echo "$sha  nascentos-$system.iso" > "$work/nascentos-$system.iso.sha256"
+    rclone copyto "$work/nascentos-$system.iso.sha256" "$remote/latest/nascentos-$system.iso.sha256" \
+      --header-upload 'Cache-Control: no-cache'
+  done
+  python3 - "$work/latest.json" "$candidate" "$tag" "$public" "${systems[@]}" > "$work/latest.new.json" <<'PY'
+import json, sys
+from pathlib import Path
+previous, candidate, tag, public, *systems = sys.argv[1:]
+latest = json.loads(Path(previous).read_text())
+for system in systems:
+    m = json.loads((Path(candidate) / f'nascentos-{tag}-{system}.manifest.json').read_text())
+    latest['images'][system] = {
+        'version': tag, 'source_revision': m['source_revision'],
+        'url': f'{public}/{tag}/{m["image"]["name"]}',
+        'latest_url': f'{public}/latest/nascentos-{system}.iso',
+        'bytes': m['image']['bytes'], 'sha256': m['image']['sha256']}
+latest.update(version=tag, source_revision=m['source_revision'])
+print(json.dumps(latest, indent=2, sort_keys=True))
+PY
+  rclone copyto "$work/latest.new.json" "$remote/latest.json" --header-upload 'Cache-Control: no-cache'
+  echo "latest/ now points at $tag for: ${systems[*]}"
+fi
+
+# Retain the newest $keep versions, plus any version latest/ still serves.
+mapfile -t serving < <(rclone cat "$remote/latest.json" | python3 -c 'import json,sys; print(*{i["version"] for i in json.load(sys.stdin)["images"].values()}, sep="\n")')
+mapfile -t versions < <(rclone lsf --dirs-only "$remote" | sed -n 's#^\(v[0-9]*\.[0-9]*\.[0-9]*\)/$#\1#p' | sort -V)
+excess=$(( ${#versions[@]} > keep ? ${#versions[@]} - keep : 0 ))
+for old in "${versions[@]:0:excess}"; do
+  [[ $old == "$tag" || " ${serving[*]} " == *" $old "* ]] && continue
+  echo "Pruning $old"
+  rclone purge "$remote/$old"
+done

@@ -12,9 +12,18 @@ fonts, the writable Zsh/Boxfish setup and session keyring were checked. See
 [validation.md](validation.md) for exact image identities and observed results;
 source tests do not establish runtime behavior of a newer image.
 
+## Download
+
+Every push to `main` publishes preview ISOs (see `release-support/README.md`):
+
+- x86_64: <https://iso.stephenokita.com/latest/nascentos-x86_64-linux.iso>
+- ARM64: <https://iso.stephenokita.com/latest/nascentos-aarch64-linux.iso>
+- Checksums: <https://iso.stephenokita.com/latest/nascentos-x86_64-linux.iso.sha256>; version and
+  source commit: <https://iso.stephenokita.com/latest.json>
+
 ## Build and preview
 
-Use a matching Linux builder for the image you want to test:
+Or build it yourself on a matching Linux builder:
 
 ```sh
 # Generic ARM64 Linux image, for supported virtual/firmware environments:

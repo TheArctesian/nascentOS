@@ -31,7 +31,12 @@ There was no pre-existing bootstrap or validation workflow. `scripts/check` is t
 local gate: formatting and evaluation of all exported configurations/checks. It
 does not build Linux or claim a desktop boots. New source files must be added to Git (intent-to-add is sufficient) before flake evaluation; ignored VM state stays outside the source snapshot.
 
-For graphical installation, build the native Linux ISO with `nix build .#installer`,
+Preview ISOs are published from every push to `main`:
+[x86_64](https://iso.stephenokita.com/latest/nascentos-x86_64-linux.iso),
+[ARM64](https://iso.stephenokita.com/latest/nascentos-aarch64-linux.iso),
+[version info and checksums](https://iso.stephenokita.com/latest.json).
+
+For graphical installation, download one of those or build the native Linux ISO with `nix build .#installer`,
 boot it in a disposable VM first, and open **Install nascentOS** from the live
 Hyprland launcher. A hardware review precedes Calamares; the installed system gets
 nascentOS modules and a pinned flake. See [the installer workflow](docs/install.md).

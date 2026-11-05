@@ -1,101 +1,103 @@
-# Build and publish installer previews
+# Build and publish installer ISOs
 
-`.github/workflows/release.yml` builds the normal
-`packages.<system>.installer` output on GitHub's hosted native runners and
-publishes a **prerelease** on GitHub Releases. ARM64 uses `ubuntu-24.04-arm`
-and is required. x86 uses `ubuntu-24.04` as a best-effort parallel build: if it
-fails, only the successful ARM bundle is published. Only verified complete
-architecture bundles appear in release notes. No self-hosted runner is needed.
-The normal ISO uses the production compression setting; `installer-dev` is
-reserved for local iteration and is not the release artifact.
+`.github/workflows/release.yml` builds the normal `packages.<system>.installer`
+output on GitHub's hosted native runners for **every push to `main`** and uploads
+the whole ISOs to the Cloudflare R2 bucket `nascentos-iso`, served at
+<https://iso.stephenokita.com>. No tags are needed. ARM64 (`ubuntu-24.04-arm`) and
+x86_64 (`ubuntu-24.04`) build in parallel; either may fail, and only verified
+architectures are published. `installer-dev` is reserved for local iteration.
 
-## Trigger
+## Downloads
 
-Push a new immutable version tag from the reviewed source commit:
+| URL | Contents |
+| --- | --- |
+| `/latest/nascentos-x86_64-linux.iso` | Newest x86_64 ISO (stable link) |
+| `/latest/nascentos-aarch64-linux.iso` | Newest ARM64 ISO (stable link) |
+| `/latest/nascentos-<system>.iso.sha256` | Checksum for that `latest/` ISO |
+| `/latest.json` | Per architecture: version, source commit, URLs, size and SHA-256 |
+| `/vX.Y.Z/` | One immutable build: ISO, flake.lock, manifest, SHA256SUMS, NOTES.md |
 
 ```sh
-git tag v0.1.0-alpha.1
-git push origin v0.1.0-alpha.1
+curl -LO https://iso.stephenokita.com/latest/nascentos-x86_64-linux.iso
+curl -LO https://iso.stephenokita.com/latest/nascentos-x86_64-linux.iso.sha256
+sha256sum -c nascentos-x86_64-linux.iso.sha256
 ```
 
-Use a new version for each build. Existing releases are never overwritten.
-The tag workflow runs from the tagged commit, including when this workflow has
-not yet been merged into the repository's default branch. A manual Run workflow
-with an existing version tag is also defined, but GitHub only enables dispatch
-once the workflow exists on the default branch. No merge or default-branch
-change is needed for tag pushes.
+Use `shasum -a 256 -c` on macOS. The newest five versions are retained
+(`R2_KEEP` in `publish-r2`), plus any version `latest/` still serves; older
+version directories are deleted. If one architecture fails to build, its
+`latest/` image stays at the previous version rather than disappearing, so
+`latest.json` can list different versions per architecture.
 
-Only trusted version tags trigger publication. PR/main checks in `check.yml`
-have read-only repository permission. The release build job also has only
-`contents: read`; only the separate publisher receives `contents: write`.
-Actions are pinned to commit SHAs, and checkout does not persist credentials.
-No personal access token or new repository secret is needed.
+## Versioning
+
+The version comes from the first-parent commit count of `main`
+(`release-support/version.py`), so each merged PR or direct push moves it
+forward without stored state. PATCH and MINOR each hold two decimal digits:
+
+| Count | Version |
+| --- | --- |
+| 6 | `v0.0.6` |
+| 99 | `v0.0.99` |
+| 100 | `v0.1.0` |
+| 10000 | `v1.0.0` |
+| 3222222 | `v322.22.22` |
+
+The checkout uses full history; a shallow clone would count 1. Rewriting `main`'s
+history would reuse numbers, so don't force-push it.
+
+## Credentials and permissions
+
+The publisher job reads the repository secrets `R2_ENDPOINT`
+(`https://<account>.r2.cloudflarestorage.com`), `R2_ACCESS_KEY_ID` and
+`R2_SECRET_ACCESS_KEY`: an R2 API token with Object Read & Write on the bucket.
+Build jobs have only `contents: read` and never see these secrets. Actions are
+pinned to commit SHAs, and checkout does not persist credentials.
 
 ## Gates and resources
 
-Each native build verifies the tag's commit, runs release unit tests and
-workflow lint, `scripts/check`, and installer/profile derivation checks. It then
-builds the production ISO without updating `flake.lock`.
+Each native build runs release unit tests and workflow lint, `scripts/check`,
+and installer/profile derivation checks, then builds the production ISO without
+updating `flake.lock`. Hosted runners document 14 GB storage, so the job removes
+unused toolchains **on that disposable runner only**, requires 30 GiB free, and
+adds a 24 GiB swap file for all-system evaluation. If `/dev/kvm` is present the
+native NixOS boot derivation runs; otherwise the manifest records
+`nixos_boot: not-run`. This service boot test is not a graphical installation.
 
-Standard hosted runners document 14 GB storage, so the job first removes unused
-Android, .NET, GHC and CodeQL toolchains **on that disposable runner only**.
-Preflight logs actual free space and requires 30 GiB for the ISO-only build.
-This is a measured-at-run gate, not a promise of unlimited hosted capacity.
-The job adds a 24 GiB swap file on its disposable runner for all-system Nix
-evaluation headroom and logs actual memory/space. The build uses two Nix
-jobs/four cores, a 180-minute timeout, and garbage-collects
-unreferenced build dependencies before copying release parts. Failure stops
-publication; there is no silently queued self-hosted job.
-
-If `/dev/kvm` is present, the job grants the ephemeral Nix build users access and
-executes the native NixOS boot derivation. If absent, the manifest explicitly
-records `nixos_boot: not-run`. KVM availability is not inferred from a runner
-label, and this service boot test is not a graphical ISO installation.
-
-The build/publisher transport artifact is retained for one day. GitHub Actions
-artifact quotas still apply. Published Release assets are the durable download.
+Builds are serialised in one concurrency group. A newer push replaces a queued
+build, and pushes touching only Markdown, `docs/` or installer preview images
+are skipped, so not every version number gets an ISO. Only `main` publishes: a
+manual run on another branch builds but skips the publish job.
 
 ## Assets and integrity
 
-Each architecture has named ISO parts, a source lock, manifest and SHA256SUMS.
-Images over 1 GiB are split into ordered 1 GiB parts to stay strictly under
-GitHub's 2 GiB per-asset limit. The manifest records the source commit, lock hash,
-Nix output/store path, whole-image bytes/SHA-256 and ordered part hashes/sizes.
+`package.py` writes the ISO, source lock, manifest (commit, lock hash, Nix store
+path, whole-image bytes/SHA-256) and SHA256SUMS. `verify-candidate.py` re-checks
+the bundle before upload. `publish-r2` then:
 
-The publisher verifies the whole reconstructed identity, exact inventory and
-lock before upload. It creates a draft, uploads every asset, then checks GitHub's
-server-computed asset SHA-256 digests and sizes against local files. Only after
-that succeeds does it make the prerelease public. An upload failure leaves a
-draft for diagnosis; it does not expose a partial public release.
+1. refuses to continue if the version already exists with a different ISO
+   hash (re-runs may only complete a partial upload of identical bytes);
+2. uploads the bundle, including NOTES.md, and runs `rclone check`;
+3. downloads each ISO back through the public URL and checks its SHA-256, since
+   rclone's multipart check relies on client-written MD5 metadata;
+4. when the version is newer than `latest.json`, server-side copies each ISO to
+   `latest/` immediately followed by its `.sha256`, then rewrites `latest.json`.
+   An R2 read error aborts rather than being treated as "no latest yet";
+5. prunes old versions.
 
-The generated release notes contain reconstruction and verification commands.
-Download all matching parts plus the lock, manifest and SHA256SUMS first:
+Versioned objects are served `immutable`; `latest/` objects and `latest.json` use
+`no-cache` so Cloudflare's edge revalidates them after each publish.
 
-```sh
-sha256sum -c nascentos-TAG-aarch64-linux.SHA256SUMS
-cat nascentos-TAG-aarch64-linux.iso.part* > nascentos-TAG-aarch64-linux.iso
-```
-
-Use `shasum -a 256 -c` for checksum-file verification on macOS. Compare the final
-ISO hash with the whole-image hash in the manifest/release notes as well.
-A tag plus `flake.lock` pins the source inputs; an independent byte-for-byte
-rebuild has not been demonstrated.
+The x86_64 build is reproducible: a local build of commit `84122b6` and the
+hosted build of the same commit gave the same ISO SHA-256 (`14167e53…`).
 
 ## Validation boundaries
 
-These are experimental previews, not stable hardware installers.
-`release_ready` remains false. The consolidated local ARM development image
-passed graphical installation, installed-disk boot, password login, selected
-app/font/keyring checks and logout; its exact hash is in `docs/validation.md`.
-That does not certify a newly built production ISO's bytes. New release hashes
-still need the appropriate graphical and physical hardware gates.
-No x86 installation or physical NVIDIA validation, actual games/VPN connections, provider
-sign-ins, vault data, model inference or microphone/audio/suspend checks are
-claimed by this pipeline.
+These are experimental previews, not stable hardware installers;
+`release_ready` remains false. See `docs/validation.md` for what the ARM
+development image has passed. No x86 installation, physical NVIDIA validation,
+games/VPN connections, provider sign-ins, model inference or audio/suspend
+checks are claimed by this pipeline.
 
 Run `./release-support/verify` for packaging, integrity and workflow checks;
 `./scripts/check` remains the repository's source/CLI gate.
-
-References: [hosted runner resources](https://docs.github.com/en/actions/reference/runners/github-hosted-runners),
-[release asset limits](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases),
-[release asset digest metadata](https://docs.github.com/en/rest/releases/assets).

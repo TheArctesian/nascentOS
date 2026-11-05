@@ -11,4 +11,4 @@ else
   echo 'Environment failure: actionlint or Nix with the integrated flake.lock is required.' >&2
   exit 127
 fi
-bash -n release-support/preflight release-support/verify
+bash -n release-support/preflight release-support/verify release-support/publish-r2 release-support/memory-watch
