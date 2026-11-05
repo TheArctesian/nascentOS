@@ -45,8 +45,9 @@ hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 2.5, bezier = 
 
 -- Installer windows are dialogs, not workspaces: float them centred at a comfortable size.
 hl.window_rule({ match = { class = "[Cc]alamares", modal = false },
-  float = true, size = "monitor_w*0.78 monitor_h*0.86", min_size = "820 600", center = true })
-hl.window_rule({ match = { title = "^Install nascentOS" }, float = true, center = true })
+  float = true, size = "max(1080, monitor_w*0.78) max(640, monitor_h*0.86)", center = true })
+-- Rule regexes must match the whole title.
+hl.window_rule({ match = { title = "^Install nascentOS.*" }, float = true, center = true })
 -- Home workspaces for regular apps, as in the owner's bspwm setup.
 for class, workspace in pairs({ ["^(firefox|Firefox)$"] = 2, ["^obsidian$"] = 3, ["^Zotero$"] = 4,
   ["^(signal|Signal)$"] = 5, ["^(Slack|slack)$"] = 6, ["^com.obsproject.Studio$"] = 8 }) do

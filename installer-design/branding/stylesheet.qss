@@ -36,3 +36,22 @@ QToolBar#nascentLogToolbar QToolButton {
 }
 QToolBar#nascentLogToolbar QToolButton:hover { background: #434c5e; }
 QLabel#nascentPageTitle { color: #eceff4; font-size: 26px; font-weight: 600; }
+QCheckBox::indicator, QRadioButton::indicator {
+    width: 14px; height: 14px; border: 2px solid #4c566a; background: #3b4252; border-radius: 4px;
+}
+QRadioButton::indicator { border-radius: 9px; }
+QCheckBox::indicator:hover, QRadioButton::indicator:hover { border-color: #81a1c1; }
+QCheckBox::indicator:checked { background: #88c0d0; border-color: #88c0d0; }
+QRadioButton::indicator:checked {
+    border-color: #88c0d0;
+    background: qradialgradient(cx: 0.5, cy: 0.5, radius: 0.5, fx: 0.5, fy: 0.5,
+        stop: 0 #88c0d0, stop: 0.5 #88c0d0, stop: 0.56 #3b4252, stop: 1 #3b4252);
+}
+QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
+QScrollBar:horizontal { background: transparent; height: 10px; margin: 2px; }
+QScrollBar::handle { background: #4c566a; border-radius: 3px; }
+QScrollBar::handle:vertical { min-height: 32px; }
+QScrollBar::handle:horizontal { min-width: 32px; }
+QScrollBar::handle:hover { background: #81a1c1; }
+QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; border: 0; }
+QScrollBar::add-page, QScrollBar::sub-page { background: none; }

@@ -31,7 +31,22 @@ QToolButton:disabled { color: #d8dee9; }
 QPushButton { background: #434c5e; border: 2px solid transparent; border-radius: 6px; padding: 8px 16px; }
 QPushButton#continue { background: #88c0d0; color: #2e3440; font-weight: 600; }
 QPushButton:disabled { background: #3b4252; color: #d8dee9; }
+QPushButton:hover { background: #4c566a; }
+QPushButton#continue:hover { background: #8fbcbb; }
+QLineEdit:focus { border-color: #88c0d0; }
+QListWidget#categories { background: #3b4252; border-radius: 10px; padding: 6px; }
+QListWidget#categories::item { padding: 10px 12px; margin: 1px 0; }
+QListWidget#categories::item:hover { background: #434c5e; }
+QListWidget#categories::item:selected, QListWidget#categories::item:selected:!active { background: #4c566a; color: #88c0d0; font-weight: 600; }
 QScrollArea { border: 0; }
+QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
+QScrollBar:horizontal { background: transparent; height: 10px; margin: 2px; }
+QScrollBar::handle { background: #4c566a; border-radius: 3px; }
+QScrollBar::handle:vertical { min-height: 32px; }
+QScrollBar::handle:horizontal { min-width: 32px; }
+QScrollBar::handle:hover { background: #81a1c1; }
+QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; border: 0; }
+QScrollBar::add-page, QScrollBar::sub-page { background: none; }
 """
 
 
@@ -47,8 +62,15 @@ class Picker(QDialog):
         self.group = manifest["apps"][0]["group"]
         self.current = None
         self.setWindowTitle("Install nascentOS — choose your apps")
-        self.resize(980, 740)
-        self.setMinimumSize(820, 650)
+        self.setMinimumSize(760, 560)
+        # Fit HiDPI laptops, where a 2x scale leaves roughly 1128x752 logical pixels.
+        screen = QApplication.primaryScreen()
+        available = screen.availableGeometry() if screen else None
+        if available:
+            self.resize(max(760, min(980, int(available.width() * 0.86))),
+                        max(560, min(740, int(available.height() * 0.86))))
+        else:
+            self.resize(980, 740)
         outer = QVBoxLayout(self)
         outer.setContentsMargins(28, 24, 28, 24)
         title = QLabel("Make room for your tools")
@@ -64,6 +86,7 @@ class Picker(QDialog):
         body = QHBoxLayout()
         self.categories = QListWidget()
         self.categories.setAccessibleName("App categories")
+        self.categories.setObjectName("categories")
         self.categories.setFixedWidth(198)
         self.categories.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         for group in dict.fromkeys(app["group"] for app in manifest["apps"]):
