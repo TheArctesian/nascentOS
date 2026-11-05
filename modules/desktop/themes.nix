@@ -3,6 +3,7 @@ let
   palettes = {
     nord = {
       background = "2e3440";
+      crust = "242933";
       surface = "3b4252";
       foreground = "eceff4";
       muted = "4c566a";
@@ -29,6 +30,7 @@ let
     };
     tokyo-night = {
       background = "1a1b26";
+      crust = "16161e";
       surface = "24283b";
       foreground = "c0caf5";
       muted = "414868";
@@ -59,7 +61,7 @@ let
       name = "nascentos/themes/${name}/hyprland.lua";
       value.text = ''
         hl.config({
-          general = { col = { active_border = "rgb(${p.accent})", inactive_border = "rgb(${p.muted})" } },
+          general = { col = { active_border = { colors = { "rgb(${p.accent})", "rgb(${builtins.elemAt p.colors 4})" }, angle = 45 }, inactive_border = "rgb(${p.surface})" } },
           misc = { background_color = "rgb(${p.background})" },
         })
       '';
@@ -80,10 +82,10 @@ let
         builtins.toJSON {
           layer = "top";
           position = "top";
-          height = 30;
-          margin-top = 7;
-          margin-left = 7;
-          margin-right = 7;
+          height = 34;
+          margin-top = 8;
+          margin-left = 10;
+          margin-right = 10;
           spacing = 0;
           modules-left = [
             "hyprland/workspaces"
@@ -120,7 +122,7 @@ let
           };
           "hyprland/window" = {
             format = "{title}";
-            max-length = 60;
+            max-length = 48;
             separate-outputs = true;
           };
           clock = {
@@ -196,35 +198,50 @@ let
     {
       name = "nascentos/themes/${name}/waybar.css";
       value.text = ''
-        * { font-family: "JetBrainsMono Nerd Font", "JetBrainsMono NF", monospace; font-size: 14px; min-height: 0; }
-        window#waybar { background: #${p.background}; color: #${p.foreground}; border-radius: 6px; }
-        #workspaces button { color: #${p.foreground}; padding: 0 9px; border: none; border-radius: 0; border-bottom: 3px solid transparent; background: transparent; }
+        * { font-family: "JetBrainsMono Nerd Font", "JetBrainsMono NF", monospace; font-size: 13px; min-height: 0; }
+        window#waybar { background: alpha(#${p.crust}, 0.9); color: #${p.foreground}; border-radius: 8px; border: 1px solid alpha(#${p.surface}, 0.9); }
+        tooltip { background: #${p.crust}; color: #${p.foreground}; border: 1px solid #${p.surface}; border-radius: 8px; }
+        tooltip label { padding: 4px 6px; }
+        #workspaces { margin: 0 4px 0 0; }
+        #workspaces button { color: #${p.foreground}; padding: 0 7px; margin: 4px 1px; border: none; border-radius: 5px; background: transparent; box-shadow: inset 0 -2px transparent; transition: all 160ms ease-out; }
         #workspaces button.empty { color: #${p.muted}; }
-        #workspaces button.active { background: #${p.surface}; border-bottom-color: #${p.accent}; }
-        #workspaces button.urgent { background: #${builtins.elemAt p.colors 1}; color: #${p.background}; }
-        #workspaces button:hover { background: #${p.surface}; box-shadow: none; text-shadow: none; }
-        #workspaces button:first-child { border-top-left-radius: 6px; border-bottom-left-radius: 6px; }
-        #window { padding: 0 12px; }
-        #clock, #cpu, #memory, #disk, #pulseaudio, #battery, #custom-clipboard, #custom-power, #tray { padding: 0 8px; }
-        #custom-power { padding-right: 12px; }
+        #workspaces button.active { background: #${p.surface}; color: #${p.accent}; box-shadow: inset 0 -2px #${p.accent}; }
+        #workspaces button.urgent { background: #${builtins.elemAt p.colors 1}; color: #${p.crust}; }
+        #workspaces button:hover { background: alpha(#${p.surface}, 0.7); box-shadow: inset 0 -2px #${p.muted}; text-shadow: none; }
+        #window { padding: 0 10px; color: alpha(#${p.foreground}, 0.8); }
+        window#waybar.empty #window { padding: 0; }
+        #clock { font-weight: bold; padding: 0 12px; }
+        #cpu, #memory, #disk, #pulseaudio, #battery, #custom-clipboard, #custom-power, #tray { padding: 0 8px; }
+        #custom-power { padding: 0 12px 0 8px; }
+        #pulseaudio:hover, #custom-clipboard:hover, #custom-power:hover, #clock:hover { background: alpha(#${p.surface}, 0.7); border-radius: 5px; }
+        #pulseaudio.muted { color: #${p.muted}; }
         #battery.warning:not(.charging) { color: #${builtins.elemAt p.colors 3}; }
         #battery.critical:not(.charging) { color: #${builtins.elemAt p.colors 1}; }
-        #custom-install { background: #${p.accent}; color: #${p.background}; padding: 0 14px; margin: 3px; border-radius: 4px; font-weight: bold; }
+        #custom-install { background: #${p.accent}; color: #${p.crust}; padding: 0 14px; margin: 4px 6px; border-radius: 5px; font-weight: bold; }
         #custom-install:hover { background: #${p.foreground}; }
-        tooltip { background: #${p.background}; color: #${p.foreground}; border: 1px solid #${p.accent}; border-radius: 6px; }
       '';
     }
     {
       name = "nascentos/themes/${name}/kitty.conf";
       value.text = ''
-        font_family Fira Code
+        font_family JetBrainsMono Nerd Font
         font_size 11
         background #${p.background}
         foreground #${p.foreground}
         cursor #${p.accent}
-        selection_background #${p.muted}
+        cursor_trail 1
+        selection_background #${p.surface}
         selection_foreground #${p.foreground}
-        window_padding_width 12
+        url_color #${p.accent}
+        window_padding_width 14
+        confirm_os_window_close 0
+        # Hyprland decides window size; a remembered "maximized" state would cover tiled siblings.
+        remember_window_size no
+        tab_bar_style powerline
+        active_tab_background #${p.accent}
+        active_tab_foreground #${p.crust}
+        inactive_tab_background #${p.surface}
+        inactive_tab_foreground #${p.foreground}
       ''
       + builtins.concatStringsSep "\n" (
         builtins.genList (i: "color${toString i} #${builtins.elemAt p.colors i}") 16
@@ -235,53 +252,119 @@ let
       name = "nascentos/themes/${name}/fuzzel.ini";
       value.text = ''
         [main]
-        font=sans-serif:size=12
+        font=JetBrainsMono Nerd Font:size=12
+        prompt="❯  "
         icon-theme=Papirus-Dark
-        width=42
-        lines=10
-        horizontal-pad=24
+        width=44
+        lines=9
+        horizontal-pad=22
         vertical-pad=18
+        inner-pad=12
+        line-height=26
+        layer=overlay
         [colors]
-        background=${p.background}f5
+        background=${p.crust}d9
         text=${p.foreground}ff
+        prompt=${p.accent}ff
+        placeholder=${p.muted}ff
+        input=${p.foreground}ff
         match=${p.accent}ff
         selection=${p.surface}ff
         selection-text=${p.foreground}ff
         selection-match=${p.accent}ff
-        border=${p.accent}ff
+        border=${p.surface}ff
         [border]
-        width=2
-        radius=8
+        width=1
+        radius=10
       '';
     }
     {
       name = "nascentos/themes/${name}/hyprlock.conf";
       value.text = ''
+        general {
+          hide_cursor = true
+          ignore_empty_input = true
+        }
+        animations {
+          enabled = true
+          bezier = nascentOut, 0.22, 1, 0.36, 1
+          animation = fadeIn, 1, 4, nascentOut
+          animation = fadeOut, 1, 3, nascentOut
+          animation = inputFieldDots, 1, 2, nascentOut
+        }
         background {
+          monitor =
+          path = screenshot
           color = rgb(${p.background})
+          blur_passes = 3
+          blur_size = 8
+          brightness = 0.6
+        }
+        label {
+          monitor =
+          text = $TIME
+          color = rgb(${p.foreground})
+          font_size = 88
+          font_family = JetBrainsMono Nerd Font ExtraBold
+          position = 0, 160
+          halign = center
+          valign = center
+        }
+        label {
+          monitor =
+          text = cmd[update:60000] date +'%A %d %B'
+          color = rgba(${p.foreground}cc)
+          font_size = 18
+          font_family = JetBrainsMono Nerd Font
+          position = 0, 70
+          halign = center
+          valign = center
         }
         input-field {
           monitor =
-          size = 300, 50
+          size = 320, 52
           position = 0, -40
-          outer_color = rgb(${p.accent})
-          inner_color = rgb(${p.surface})
+          halign = center
+          valign = center
+          outline_thickness = 2
+          rounding = 10
+          dots_size = 0.22
+          dots_spacing = 0.35
+          outer_color = rgb(${p.surface})
+          inner_color = rgba(${p.crust}e6)
           font_color = rgb(${p.foreground})
-          placeholder_text = Password
+          check_color = rgb(${p.accent})
+          fail_color = rgb(${builtins.elemAt p.colors 1})
+          capslock_color = rgb(${builtins.elemAt p.colors 3})
+          font_family = JetBrainsMono Nerd Font
+          placeholder_text = <span foreground="##${p.muted}">󰌾  $USER</span>
+          fail_text = <i>$FAIL</i>
+          fade_on_empty = false
         }
       '';
     }
     {
       name = "nascentos/themes/${name}/mako.conf";
       value.text = ''
-        font=sans-serif 11
-        background-color=#${p.background}
+        font=JetBrainsMono Nerd Font 10
+        background-color=#${p.crust}e0
         text-color=#${p.foreground}
-        border-color=#${p.accent}
-        border-size=2
-        border-radius=8
-        padding=16
-        default-timeout=7000
+        border-color=#${p.surface}
+        progress-color=over #${p.accent}55
+        border-size=1
+        border-radius=10
+        padding=14,16
+        margin=10
+        width=380
+        icons=1
+        max-icon-size=40
+        default-timeout=6000
+        layer=overlay
+        [urgency=low]
+        text-color=#${p.foreground}cc
+        [urgency=critical]
+        border-color=#${builtins.elemAt p.colors 1}
+        default-timeout=0
       '';
     }
   ];

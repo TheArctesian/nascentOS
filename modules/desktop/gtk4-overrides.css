@@ -1,0 +1,37 @@
+/* nascentOS: Nord accents and dialog polish on top of the Nordic GTK theme. */
+@define-color accent_color #88c0d0;
+@define-color accent_bg_color #88c0d0;
+@define-color accent_fg_color #2e3440;
+@define-color theme_selected_bg_color #88c0d0;
+@define-color theme_selected_fg_color #2e3440;
+window, dialog, .background { background-color: #2e3440; color: #eceff4; }
+headerbar, .titlebar { background: #2e3440; box-shadow: none; border: none; }
+label.title { font-weight: 700; }
+radio, check { border-color: #4c566a; background: #3b4252; }
+radio:checked, check:checked { background: #88c0d0; border-color: #88c0d0; color: #2e3440; }
+treeview, columnview, listview, list { background: #3b4252; border-radius: 8px; }
+treeview header button { background: #3b4252; color: #d8dee9; border: none; box-shadow: inset 0 -1px #434c5e; font-weight: 600; }
+treeview:selected, columnview row:selected, listview row:selected, list row:selected, row:selected {
+  background: alpha(#88c0d0, 0.18); color: #eceff4; }
+treeview:selected:focus { background: alpha(#88c0d0, 0.28); }
+button { border-radius: 8px; min-height: 34px; padding: 4px 18px; background: #3b4252; color: #eceff4; border: 1px solid #434c5e; box-shadow: none; }
+button:hover { background: #434c5e; }
+button:focus-visible { outline: 2px solid alpha(#88c0d0, 0.6); outline-offset: 1px; }
+button.suggested-action { background: #88c0d0; color: #2e3440; border-color: #88c0d0; font-weight: 700; }
+button.suggested-action:hover { background: #8fbcbb; }
+button.destructive-action { background: #bf616a; color: #eceff4; border-color: #bf616a; }
+entry, spinbutton { border-radius: 8px; background: #3b4252; border: 1px solid #434c5e; min-height: 34px; }
+entry:focus-within { border-color: #88c0d0; box-shadow: 0 0 0 2px alpha(#88c0d0, 0.25); }
+progressbar progress { background: #88c0d0; border-radius: 6px; }
+progressbar trough { background: #3b4252; border-radius: 6px; min-height: 6px; }
+treeview.view:selected, treeview.view:selected:focus, .view:selected, .view:selected:focus {
+  background-color: alpha(#88c0d0, 0.2); color: #eceff4; }
+treeview.view radio, treeview.view check, radio, check { -gtk-icon-source: none; border-radius: 50%; border: 2px solid #4c566a; background: none; min-width: 14px; min-height: 14px; }
+treeview.view check, check { border-radius: 4px; }
+treeview.view radio:checked, radio:checked { border-color: #88c0d0; background: #88c0d0; box-shadow: inset 0 0 0 3px #3b4252; }
+treeview.view check:checked, check:checked { border-color: #88c0d0; background: #88c0d0; }
+window.messagedialog .response-area > button { min-height: 40px; }
+/* zenity's affirmative response is always second (after Cancel), or the only button. */
+window.messagedialog .response-area > button:nth-child(2), window.messagedialog .response-area > button:only-child { background: #88c0d0; color: #2e3440; font-weight: 700; border-color: #88c0d0; }
+window.messagedialog .response-area > button:nth-child(2):hover, window.messagedialog .response-area > button:only-child:hover { background: #8fbcbb; }
+window.messagedialog image { -gtk-icon-size: 72px; margin-right: 8px; }

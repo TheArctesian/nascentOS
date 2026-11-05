@@ -107,7 +107,6 @@ in
         command = "nascent-session";
         user = "nixos";
       };
-      default_session.command = "${pkgs.tuigreet}/bin/tuigreet --cmd nascent-session";
     };
   };
   isoImage.edition = "nascent-graphical";

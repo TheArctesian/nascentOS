@@ -13,6 +13,7 @@ import textwrap
 from hardware import scan
 
 TITLE = 'Install nascentOS'
+PROFILES = {'generic': 'standard kernel and Mesa', 'nvidia-open': 'modern NVIDIA (unfree driver)'}
 
 
 @contextmanager
@@ -43,7 +44,13 @@ def root_display_access(log):
                 log.flush()
 
 
+LOGO = '/etc/nascentos/branding/main-logo.png'
+
+
 def dialog(arguments, **kwargs):
+    # Questions and notices carry the nascentOS artwork; errors keep the standard error icon.
+    if arguments[0] in ('--question', '--info') and os.path.exists(LOGO):
+        arguments = [arguments[0], '--icon=' + LOGO, *arguments[1:]]
     # GTK's Cairo renderer avoids repeated unsupported Vulkan probes in software VMs.
     return subprocess.run(['zenity', *arguments], env={**os.environ, 'GSK_RENDERER': 'cairo'}, **kwargs)
 
@@ -74,7 +81,8 @@ def summary(report):
     devices = ', '.join(gpu['vendor'] + ':' + gpu['device'] for gpu in report['gpus']) or 'No PCI display device'
     lines = [machine, f"{report['system'] or 'Unsupported architecture'} · {report['firmware']}",
              'Graphics: ' + devices, '',
-             'Choose the graphics profile. Storage, boot and your user account are configured in the next steps.',
+             'Recommended graphics: ' + PROFILES.get(report.get('recommended'), 'standard kernel and Mesa') + '.',
+             'Storage, boot and your user account are configured in the next steps.',
              'No disk changes happen during this review.']
     if report['warnings']:
         lines.extend(['', 'Hardware notes:', *report['warnings']])
@@ -122,22 +130,24 @@ def main():
             if not report['system'] or report['family'] != 'generic':
                 raise ValueError('This platform needs a supported boot/kernel configuration before installation.\n' + summary(report))
             recommended = report['recommended']
-            choice = dialog(['--list', '--radiolist', '--no-markup', '--width=760', '--height=500',
+            # The recommended profile is the primary button; the alternative is one click away.
+            labels = {'generic': 'Use standard graphics', 'nvidia-open': 'Use NVIDIA driver'}
+            other = 'nvidia-open' if recommended == 'generic' else 'generic'
+            choice = dialog(['--question', '--no-markup', '--width=640',
                              '--title=' + TITLE + ' — hardware review', '--text=' + summary(report),
-                             '--ok-label=Continue', '--cancel-label=Cancel', '--print-column=2',
-                             '--column=Select', '--column=Profile', '--column=Graphics support',
-                             str(recommended == 'generic').upper(), 'generic', 'Standard kernel and Mesa',
-                             str(recommended == 'nvidia-open').upper(), 'nvidia-open', 'Modern NVIDIA (unfree driver)'],
+                             '--ok-label=Continue', '--cancel-label=Cancel',
+                             '--extra-button=' + labels[other]],
                             capture_output=True, text=True)
             log.write(choice.stderr)
             log.flush()
-            if choice.returncode == 1:
+            if choice.returncode == 0:
+                profile = recommended
+            elif choice.returncode == 1 and choice.stdout.strip() == labels[other]:
+                profile = other
+            elif choice.returncode == 1:
                 return 0
-            if choice.returncode != 0:
+            else:
                 raise ValueError('Could not display the hardware review.')
-            profile = choice.stdout.strip()
-            if profile not in ('generic', 'nvidia-open'):
-                raise ValueError('Choose a graphics profile before continuing.')
             if profile == 'nvidia-open':
                 confirmation = dialog(['--question', '--no-markup', '--title=' + TITLE,
                                        '--text=NVIDIA open requires a supported Turing-or-newer GPU and enables the unfree NVIDIA driver. Continue with this profile?',

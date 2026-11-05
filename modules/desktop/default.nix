@@ -75,6 +75,7 @@ let
               pkgs.brightnessctl
               pkgs.playerctl
               pkgs.wireplumber
+              pkgs.xrdb
             ]
             ++ lib.optional config.programs.firefox.enable config.programs.firefox.finalPackage
           )
@@ -109,9 +110,49 @@ let
       exit "$status"
     '';
   };
+  # Nord on the virtual console, so the greeter and TTYs match the desktop.
+  consolePalette = [
+    "2e3440"
+    "bf616a"
+    "a3be8c"
+    "ebcb8b"
+    "81a1c1"
+    "b48ead"
+    "88c0d0"
+    "e5e9f0"
+    "4c566a"
+    "bf616a"
+    "a3be8c"
+    "ebcb8b"
+    "81a1c1"
+    "b48ead"
+    "8fbcbb"
+    "eceff4"
+  ];
+  # tuigreet centres each greeting line; equal-width lines keep the ridge art aligned.
+  greeting = pkgs.runCommand "nascent-greeting" { } ''
+    awk '{ printf "%-27s\n", $0 }' ${../../assets/branding/terminal-logo.txt} > $out
+    printf '\nnascentOS' >> $out
+  '';
+  greeter = pkgs.writeShellScript "nascent-greeter" ''
+    exec ${pkgs.tuigreet}/bin/tuigreet --cmd nascent-session \
+      --greeting "$(cat ${greeting})" --time --time-format '%A %d %B  %H:%M' \
+      --remember --remember-user-session --asterisks --asterisks-char '•' \
+      --window-padding 2 --container-padding 2 --prompt-padding 1 \
+      --power-shutdown 'systemctl poweroff' --power-reboot 'systemctl reboot' \
+      --theme 'border=blue;text=white;prompt=cyan;time=brightblack;action=brightblack;button=cyan;container=black;input=white;greet=cyan;title=cyan'
+  '';
 in
 {
   config = lib.mkIf config.nascent.desktop.enable {
+    console = {
+      colors = lib.mkDefault consolePalette;
+      # The 8x16 kernel font is unreadably small on HiDPI laptop panels.
+      font = lib.mkDefault "ter-v32b";
+      packages = [ pkgs.terminus_font ];
+      earlySetup = lib.mkDefault true;
+    };
+    services.greetd.settings.default_session.command = lib.mkDefault "${greeter}";
     assertions = [
       {
         assertion = unrecordedDefaults == [ ];
@@ -122,6 +163,8 @@ in
     programs.firefox.enable = lib.mkDefault (builtins.elem "firefox" selected);
     environment.variables.EDITOR = lib.mkOverride 900 "nascent-editor";
     environment.variables.VISUAL = lib.mkOverride 900 "nascent-editor";
+    environment.sessionVariables.XCURSOR_THEME = lib.mkDefault "Nordic-cursors";
+    environment.sessionVariables.XCURSOR_SIZE = lib.mkDefault "24";
     environment.sessionVariables.XKB_DEFAULT_LAYOUT = lib.mkDefault config.services.xserver.xkb.layout;
     environment.sessionVariables.XKB_DEFAULT_VARIANT = lib.mkDefault config.services.xserver.xkb.variant;
     programs.dconf.enable = true;
@@ -131,6 +174,8 @@ in
           gtk-theme = "Nordic";
           icon-theme = "Papirus-Dark";
           color-scheme = "prefer-dark";
+          cursor-theme = "Nordic-cursors";
+          cursor-size = lib.gvariant.mkInt32 24;
         };
       }
     ];
@@ -188,11 +233,14 @@ in
       "xdg/Kvantum/kvantum.kvconfig".text = "[General]\ntheme=Nordic\n";
       "xdg/qt6ct/qt6ct.conf".text = "[Appearance]\nstyle=kvantum\nicon_theme=Papirus-Dark\n";
       "xdg/gtk-3.0/settings.ini".text =
-        "[Settings]\ngtk-theme-name=Nordic\ngtk-icon-theme-name=Papirus-Dark\n";
+        "[Settings]\ngtk-theme-name=Nordic\ngtk-icon-theme-name=Papirus-Dark\ngtk-cursor-theme-name=Nordic-cursors\ngtk-cursor-theme-size=24\n";
       "xdg/gtk-4.0/settings.ini".text =
-        "[Settings]\ngtk-theme-name=Nordic\ngtk-icon-theme-name=Papirus-Dark\n";
-      "nascentos/gtk-4.0.css".text =
-        ''@import url("${pkgs.nordic}/share/themes/Nordic/gtk-4.0/gtk.css");'';
+        "[Settings]\ngtk-theme-name=Nordic\ngtk-icon-theme-name=Papirus-Dark\ngtk-cursor-theme-name=Nordic-cursors\ngtk-cursor-theme-size=24\n";
+      # Users import this stable path, so nixpkgs updates never leave a dangling store import.
+      "nascentos/gtk-4.0.css".text = ''
+        @import url("${pkgs.nordic}/share/themes/Nordic/gtk-4.0/gtk.css");
+        ${builtins.readFile ./gtk4-overrides.css}
+      '';
       "nascentos/branding".source = ../../assets/branding;
       "nascentos/wallpapers".source = ../../assets/wallpapers;
       "nascentos/hardware.py".source = ../../lib/hardware.py;

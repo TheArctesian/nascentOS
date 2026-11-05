@@ -5,7 +5,7 @@ theme=$(nascent-theme path)
 items=('Applications' 'Terminal' 'Theme: Nord' 'Theme: Tokyo Night' 'Agent' 'Lock' 'Log out')
 if command -v nascent-install >/dev/null 2>&1; then items=('Install nascentOS' "${items[@]}"); fi
 choice=$(printf '%s\n' "${items[@]}" |
-  fuzzel --config "$theme/fuzzel.ini" --dmenu --prompt 'Search menu > ') || exit 0
+  fuzzel --config "$theme/fuzzel.ini" --dmenu --prompt '❯  ' --placeholder 'Search the desktop menu') || exit 0
 case "$choice" in
   'Install nascentOS') exec nascent-install ;;
   Applications) exec nascent-launch apps ;;

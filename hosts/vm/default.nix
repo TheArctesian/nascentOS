@@ -19,7 +19,6 @@
   };
   services.greetd = {
     enable = true;
-    settings.default_session.command = "${pkgs.tuigreet}/bin/tuigreet --cmd nascent-session";
   };
   virtualisation = {
     memorySize = 4096;

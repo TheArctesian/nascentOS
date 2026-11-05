@@ -3,27 +3,35 @@
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
 hl.config({
   general = {
-    layout = "dwindle", gaps_in = 5, gaps_out = 10, border_size = 2,
+    layout = "dwindle", gaps_in = 5, gaps_out = 10, border_size = 2, resize_on_border = true,
     col = { active_border = "rgb(88c0d0)", inactive_border = "rgb(4c566a)" },
   },
-  decoration = { rounding = 6, blur = { enabled = false } },
+  decoration = {
+    -- Blur only applies to translucent surfaces: the launcher, notifications and bar, not opaque windows.
+    rounding = 8, blur = { enabled = true, size = 6, passes = 3, noise = 0.02, vibrancy = 0.2 },
+    shadow = { enabled = true, range = 18, render_power = 3, offset = "0 4", color = "rgba(0000004d)", color_inactive = "rgba(00000026)" },
+  },
+  dwindle = { preserve_split = true },
   input = {
     kb_layout = os.getenv("XKB_DEFAULT_LAYOUT") or "us", kb_variant = os.getenv("XKB_DEFAULT_VARIANT") or "",
     follow_mouse = 1, touchpad = { natural_scroll = true },
   },
   -- Render X11 apps at their native size instead of upscaling them blurrily on HiDPI panels.
   xwayland = { force_zero_scaling = true },
-  misc = { disable_hyprland_logo = true, background_color = "rgb(2e3440)" },
+  misc = { disable_hyprland_logo = true, disable_splash_rendering = true, background_color = "rgb(2e3440)" },
   animations = { enabled = true },
 })
 
--- One motion language everywhere: short ease-out fades, a subtle pop-in for new windows, no slides.
+-- One motion language everywhere: windows move on a critically damped spring (fluid, no bounce),
+-- everything else fades with a short ease-out. Nothing slides across the screen.
 hl.curve("nascentOut", { type = "bezier", points = { { 0.22, 1 }, { 0.36, 1 } } })
 hl.curve("nascentIn", { type = "bezier", points = { { 0.55, 0 }, { 1, 0.45 } } })
+hl.curve("nascentSpring", { type = "spring", mass = 1, stiffness = 120, dampening = 21 })
 hl.animation({ leaf = "global", enabled = true, speed = 2.5, bezier = "nascentOut" })
-hl.animation({ leaf = "windowsIn", enabled = true, speed = 2.5, bezier = "nascentOut", style = "popin 94%" })
+hl.animation({ leaf = "windows", enabled = true, speed = 4, spring = "nascentSpring" })
+hl.animation({ leaf = "windowsIn", enabled = true, speed = 4, spring = "nascentSpring", style = "popin 92%" })
 hl.animation({ leaf = "windowsOut", enabled = true, speed = 1.6, bezier = "nascentIn", style = "popin 94%" })
-hl.animation({ leaf = "windowsMove", enabled = true, speed = 2.5, bezier = "nascentOut" })
+hl.animation({ leaf = "windowsMove", enabled = true, speed = 4, spring = "nascentSpring" })
 hl.animation({ leaf = "fadeIn", enabled = true, speed = 2.5, bezier = "nascentOut" })
 hl.animation({ leaf = "fadeOut", enabled = true, speed = 1.6, bezier = "nascentIn" })
 hl.animation({ leaf = "fadeSwitch", enabled = true, speed = 2.5, bezier = "nascentOut" })
@@ -37,7 +45,7 @@ hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 2.5, bezier = 
 
 -- Installer windows are dialogs, not workspaces: float them centred at a comfortable size.
 hl.window_rule({ match = { class = "[Cc]alamares", modal = false },
-  float = true, size = "monitor_w*0.7 monitor_h*0.82", min_size = "800 520", center = true })
+  float = true, size = "monitor_w*0.78 monitor_h*0.86", min_size = "820 600", center = true })
 hl.window_rule({ match = { title = "^Install nascentOS" }, float = true, center = true })
 -- Home workspaces for regular apps, as in the owner's bspwm setup.
 for class, workspace in pairs({ ["^(firefox|Firefox)$"] = 2, ["^obsidian$"] = 3, ["^Zotero$"] = 4,
@@ -47,8 +55,11 @@ end
 hl.window_rule({ match = { class = "^(zenity|pavucontrol|org.pulseaudio.pavucontrol|nm-connection-editor|mpv)$" },
   float = true, center = true })
 
+hl.layer_rule({ match = { namespace = "^(launcher|notifications|waybar)$" }, blur = true, ignore_alpha = 0.3 })
+
 hl.on("hyprland.start", function()
   hl.exec_cmd("dbus-update-activation-environment --systemd DBUS_SESSION_BUS_ADDRESS WAYLAND_DISPLAY DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP XDG_SESSION_TYPE && systemctl --user start nascent-session.target && systemctl --user start nascent-wallpaper.service")
+  hl.exec_cmd("nascent-xdpi")
   hl.exec_cmd("nascent-launch bar")
   hl.exec_cmd("nascent-launch notifications")
   hl.exec_cmd("nascent-clipboard watch")

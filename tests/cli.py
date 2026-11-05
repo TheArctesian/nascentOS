@@ -69,6 +69,16 @@ with tempfile.TemporaryDirectory() as temporary:
     legacy_bar.write_text('{"personal": "bar"}')
     run('theme', 'init')
     assert legacy_bar.read_text() == '{"personal": "bar"}'
+    # GTK: a legacy store-path import moves to the stable /etc import; personal CSS is kept.
+    (data / 'gtk-4.0.css').write_text('/* shipped */')
+    gtk = home / 'config/gtk-4.0/gtk.css'
+    gtk.parent.mkdir(parents=True)
+    gtk.write_text('@import url("/nix/store/s9f73z8gmjnxww75s24lkd99j3kdy2br-nordic-2.2.0/share/themes/Nordic/gtk-4.0/gtk.css");')
+    run('theme', 'init')
+    assert gtk.read_text() == f'@import url("{data}/gtk-4.0.css");\n', gtk.read_text()
+    gtk.write_text('window { color: red; }\n')
+    run('theme', 'init')
+    assert gtk.read_text() == 'window { color: red; }\n'
     run('editor', 'init')
     nvim = home / 'config/nvim/init.lua'
     assert nvim.read_text() == '-- original'

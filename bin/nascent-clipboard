@@ -8,7 +8,7 @@ case "${1:-}" in
     ;;
   pick)
     theme=$(nascent-theme path)
-    choice=$(cliphist list | fuzzel --config "$theme/fuzzel.ini" --dmenu --prompt 'Clipboard > ') || exit 0
+    choice=$(cliphist list | fuzzel --config "$theme/fuzzel.ini" --dmenu --prompt '󰅌  ' --placeholder 'Clipboard history') || exit 0
     printf '%s' "$choice" | cliphist decode | wl-copy
     ;;
   clear) cliphist wipe ;;

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# nascent:summary=Tell X11 apps the display scale so XWayland windows render crisp at the right size
+# Hyprland's xwayland.force_zero_scaling hands X11 clients native pixels; Qt and GTK then size
+# themselves from Xft.dpi. Without this, X11 apps (including Calamares) are tiny on HiDPI panels.
+set -euo pipefail
+scale=$(hyprctl -j monitors | python3 -c '
+import json, sys
+print(max([m.get("scale", 1) for m in json.load(sys.stdin)] or [1]))')
+dpi=$(python3 -c "print(round(96 * float('$scale')))")
+printf 'Xft.dpi: %s\n' "$dpi" | xrdb -merge

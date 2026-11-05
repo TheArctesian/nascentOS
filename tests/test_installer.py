@@ -153,7 +153,8 @@ class InstallTargetTests(unittest.TestCase):
         self.assertEqual((self.target / 'flake.lock').read_bytes(), (self.source / 'flake.lock').read_bytes())
         desktop = (self.target / 'nascent-desktop.nix').read_text()
         self.assertIn('nascent.desktop.enable = true', desktop)
-        self.assertIn('nascent-session', desktop)
+        # The desktop module's themed greeter must not be overridden by the generated file.
+        self.assertNotIn('default_session.command', desktop)
         self.assertIn('services.greetd.enable = true', desktop)
 
     def test_prepare_refuses_existing_owned_files_without_touching_generated_config(self):

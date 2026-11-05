@@ -70,11 +70,11 @@ def prepare(root, config, source=SOURCE, selection=None):
         if not path.is_symlink():
             path.chmod(path.stat().st_mode | stat.S_IWUSR)
     write_profile(target, report, choice['profile'])
-    desktop = '''{ pkgs, ... }: {
+    desktop = '''{ ... }: {
   nascent.desktop.enable = true;
   nascent.localAI.enable = true;
+  # The nascentOS desktop module supplies the themed greeter command.
   services.greetd.enable = true;
-  services.greetd.settings.default_session.command = "${pkgs.tuigreet}/bin/tuigreet --cmd nascent-session";
 }
 '''
     (target / 'nascent-desktop.nix').write_text(desktop)
