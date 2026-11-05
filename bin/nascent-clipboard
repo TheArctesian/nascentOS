@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# nascent:summary=Clipboard history: record copies and pick an earlier one
+set -euo pipefail
+case "${1:-}" in
+  watch)
+    pkill -u "$(id -u)" -f 'wl-paste --watch cliphist' || true
+    exec wl-paste --watch cliphist store
+    ;;
+  pick)
+    theme=$(nascent-theme path)
+    choice=$(cliphist list | fuzzel --config "$theme/fuzzel.ini" --dmenu --prompt 'Clipboard > ') || exit 0
+    printf '%s' "$choice" | cliphist decode | wl-copy
+    ;;
+  clear) cliphist wipe ;;
+  *) echo 'Usage: nascent-clipboard watch|pick|clear' >&2; exit 2 ;;
+esac

@@ -6,6 +6,14 @@
   ...
 }:
 let
+  themeEtc = (import ./themes.nix { }).environment.etc;
+  # Cumulative history of shipped theme defaults; nascent-theme refreshes only untouched copies.
+  shippedDefaults = builtins.readFile ./shipped-defaults.sha256;
+  unrecordedDefaults = lib.filter (line: !(lib.hasInfix line shippedDefaults)) (
+    lib.mapAttrsToList (
+      name: file: "${builtins.hashString "sha256" file.text}  ${lib.removePrefix "nascentos/" name}"
+    ) themeEtc
+  );
   software =
     lib.hasAttrByPath [ "nascent" "software" "enable" ] options && config.nascent.software.enable;
   selected =
@@ -58,6 +66,15 @@ let
               pkgs.curl
               pkgs.systemd
               pkgs.zenity
+              pkgs.util-linux
+              pkgs.libnotify
+              pkgs.grim
+              pkgs.slurp
+              pkgs.wl-clipboard
+              pkgs.cliphist
+              pkgs.brightnessctl
+              pkgs.playerctl
+              pkgs.wireplumber
             ]
             ++ lib.optional config.programs.firefox.enable config.programs.firefox.finalPackage
           )
@@ -95,6 +112,12 @@ let
 in
 {
   config = lib.mkIf config.nascent.desktop.enable {
+    assertions = [
+      {
+        assertion = unrecordedDefaults == [ ];
+        message = "Append to modules/desktop/shipped-defaults.sha256 so installed copies can be refreshed:\n${lib.concatLines unrecordedDefaults}";
+      }
+    ];
     programs.hyprland.enable = true;
     programs.firefox.enable = lib.mkDefault (builtins.elem "firefox" selected);
     environment.variables.EDITOR = lib.mkOverride 900 "nascent-editor";
@@ -157,9 +180,10 @@ in
     fonts.packages = [
       pkgs.fira-code
       pkgs.font-awesome
+      pkgs.nerd-fonts.jetbrains-mono
     ];
     fonts.fontconfig.defaultFonts.monospace = lib.mkDefault [ "Fira Code" ];
-    environment.etc = (import ./themes.nix { }).environment.etc // {
+    environment.etc = themeEtc // {
       "nascentos/software-runtime.json".text = builtins.toJSON { inherit browser editor; };
       "xdg/Kvantum/kvantum.kvconfig".text = "[General]\ntheme=Nordic\n";
       "xdg/qt6ct/qt6ct.conf".text = "[Appearance]\nstyle=kvantum\nicon_theme=Papirus-Dark\n";
@@ -180,38 +204,7 @@ in
           [ "/run/current-system/sw/libexec/polkit-gnome-authentication-agent-1" ]
           [ "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1" ]
           (builtins.readFile ./hyprland.lua);
-      "nascentos/waybar.json".text = builtins.toJSON {
-        layer = "top";
-        position = "top";
-        height = 36;
-        margin-top = 10;
-        margin-left = 12;
-        margin-right = 12;
-        spacing = 4;
-        modules-left = [
-          "custom/menu"
-          "hyprland/workspaces"
-        ];
-        modules-center = [ "clock" ];
-        modules-right = [
-          "custom/install"
-          "network"
-          "pulseaudio"
-          "tray"
-        ];
-        clock.format = "{:%a %d %b  %H:%M}";
-        "custom/menu" = {
-          format = "nascentOS";
-          tooltip-format = "Open menu · Super+Space\nApplications · Super+D\nTerminal · Super+Return";
-          on-click = "nascent menu";
-        };
-        "custom/install" = {
-          exec = ''if command -v nascent-install >/dev/null 2>&1; then printf '%s\n' '{"text":"Install nascentOS","tooltip":"Open installer · Super+I"}'; else printf '%s\n' '{"text":""}'; fi'';
-          return-type = "json";
-          interval = "once";
-          on-click = "nascent-install";
-        };
-      };
+      "nascentos/shipped-defaults.sha256".text = shippedDefaults;
 
     };
   };

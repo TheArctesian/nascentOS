@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# nascent:summary=Focus an application's window, or launch it if it is not running
+set -euo pipefail
+usage() { echo 'Usage: nascent-focus [--requires PROGRAM] CLASS COMMAND [ARGS...]' >&2; exit 2; }
+requires=
+if [[ ${1:-} == --requires ]]; then requires=${2:-}; shift 2 || usage; fi
+[[ $# -ge 2 ]] || usage
+class=$1; shift
+address=$(hyprctl -j clients | python3 -c '
+import json, re, sys
+pattern = re.compile(sys.argv[1], re.IGNORECASE)
+for client in json.load(sys.stdin):
+    if pattern.search(client.get("class", "")) or pattern.search(client.get("initialClass", "")):
+        print(client["address"]); break
+' "$class")
+if [[ -n $address ]]; then
+  exec hyprctl dispatch "hl.dsp.focus({ window = \"address:$address\" })"
+fi
+program=${requires:-$1}
+if ! command -v "$program" >/dev/null 2>&1; then
+  notify-send -a nascentOS "$program is not installed" "Add it to /etc/nixos/nascent-software.nix or install it, then try again."
+  exit 1
+fi
+exec setsid -f "$@" >/dev/null 2>&1

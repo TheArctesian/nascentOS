@@ -56,19 +56,35 @@ cd .vm
 Log in as **nascent**, password **nascent**, only in this disposable VM. This
 account is defined only in `hosts/vm`. The Super key is usually Command on a Mac.
 
+Keybindings follow the owner's bspwm/sxhkd layout.
+
 | Shortcut | Action |
 | --- | --- |
-| Super + Enter | Terminal |
-| Super + Space | Desktop menu (apps, themes, agent, lock) |
-| Super + D / A | App launcher / selected agent |
-| Super + B | Browser |
+| Super + Shift + Enter (or Enter) | Terminal |
+| Super + P (or D) | App launcher |
+| Super + Shift + Space | Desktop menu (apps, themes, agent) |
+| Super + A | Selected agent |
+| Super + B / O / Z / G / M / Y | Browser / Obsidian / Zotero / Signal / Slack / Yazi (focus or launch) |
 | Super + I | Open or focus Install nascentOS (live ISO) |
-| Super + arrows | Focus window |
-| Super + 1…0 | Workspace 1…10 |
-| Super + Shift + 1…0 | Move window to workspace |
-| Super + Q / F / V | Close / fullscreen / float |
-| Super + Shift + L / E | Lock / exit session |
+| Super + C (or Q) / Shift + C | Close / kill window |
+| Super + T / Shift + T / S / F | Tiled / pseudo-tiled / floating / fullscreen |
+| Super + Space | Monocle (maximise) toggle |
+| Super + h j k l | Focus window |
+| Super + Shift + h j k l | Swap window |
+| Super + Alt + h j k l | Resize window |
+| Super + Ctrl + h j k l | Preselect split direction |
+| Super + 1…0 / Shift + 1…0 | Workspace / move window to workspace |
+| Super + Left / Right (or < >) | Previous / next workspace |
+| Super + V | Clipboard history |
+| Print / Super + Shift + S / Ctrl + Print | Screenshot: full / area / delayed (copied, saved to ~/Pictures/Screenshots) |
+| Super + Shift + E (or Pause) | Power menu (lock, suspend, log out, reboot, shut down) |
+| Super + Escape / Shift + R | Reload compositor config |
+| Super + Shift + Q | Exit session |
 | Super + mouse drag | Move (left button) / resize (right button) |
+
+Volume, microphone, brightness and media keys work, including on the lock screen.
+The display scale is picked from the panel's pixel density (for example 2× on a
+Framework 13); set your own with `hl.monitor` in `~/.config/nascentos/hyprland.lua`.
 
 The session starts through `nascent-session`. Themes and the personal Nord LazyVim
 config bootstrap into writable user files only when absent. `nascent theme set

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# nascent:summary=Volume, microphone, brightness and playback keys
+set -euo pipefail
+case "${1:-} ${2:-}" in
+  'volume up') wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+ ;;
+  'volume down') wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- ;;
+  'volume mute') wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle ;;
+  'mic mute') wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle ;;
+  'brightness up') brightnessctl -q set 5%+ ;;
+  'brightness down') brightnessctl -q -n 1% set 5%- ;;
+  'play '*) playerctl play-pause ;;
+  'next '*) playerctl next ;;
+  'previous '*) playerctl previous ;;
+  *) echo 'Usage: nascent-media volume up|down|mute | mic mute | brightness up|down | play|next|previous' >&2; exit 2 ;;
+esac

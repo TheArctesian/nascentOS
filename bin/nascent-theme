@@ -27,6 +27,13 @@ select_theme() {
   mv -Tf "$temporary/link" "$config_dir/current-theme"
   rmdir "$temporary"
 }
+# True when FILE is byte-identical to a default nascentOS once shipped, i.e. never edited.
+untouched_default() {
+  local sum
+  [[ -f $1 && ! -L $1 && -f $data_dir/shipped-defaults.sha256 ]] || return 1
+  sum=$(sha256sum "$1" | cut -d' ' -f1)
+  grep -q "^$sum " "$data_dir/shipped-defaults.sha256"
+}
 init() {
   mkdir -p "$config_dir/themes"
   for source in "$data_dir"/themes/*; do
@@ -35,13 +42,22 @@ init() {
     if [[ ! -e $config_dir/themes/$name && ! -L $config_dir/themes/$name ]]; then
       cp -RL "$source" "$config_dir/themes/$name"
       chmod -R u+w "$config_dir/themes/$name"
+      continue
     fi
+    [[ -d $config_dir/themes/$name && ! -L $config_dir/themes/$name ]] || continue
+    # Bring untouched copies up to date and add newly shipped files; never replace personal edits.
+    for file in "$source"/*; do
+      target=$config_dir/themes/$name/${file##*/}
+      if [[ ! -e $target && ! -L $target ]] || { untouched_default "$target" && ! cmp -s "$file" "$target"; }; then
+        cp -L "$file" "$target.new"
+        chmod u+w "$target.new"
+        mv -f "$target.new" "$target"
+      fi
+    done
   done
   if [[ ! -L $config_dir/current-theme ]]; then select_theme nord; fi
-  if [[ ! -e $config_dir/waybar.json && -f $data_dir/waybar.json ]]; then
-    cp "$data_dir/waybar.json" "$config_dir/waybar.json"
-    chmod u+w "$config_dir/waybar.json"
-  fi
+  # Earlier releases copied a global waybar.json; an untouched copy would hide the theme's bar.
+  if untouched_default "$config_dir/waybar.json"; then rm -f "$config_dir/waybar.json"; fi
   gtk_config="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-4.0"
   if [[ ! -e $gtk_config/gtk.css && ! -L $gtk_config/gtk.css && -f $data_dir/gtk-4.0.css ]]; then
     mkdir -p "$gtk_config"

@@ -51,6 +51,24 @@ with tempfile.TemporaryDirectory() as temporary:
     assert run('theme', 'current') == 'tokyo-night'
     run('theme', 'set', 'nord')
     assert personal.read_text() == 'personal edits'
+    # Untouched copies of an older shipped default are refreshed; personal edits never are.
+    import hashlib
+    old_default = 'old shipped default'
+    (data / 'shipped-defaults.sha256').write_text(
+        '# history\n' + hashlib.sha256(old_default.encode()).hexdigest() + '  themes/nord/waybar.css\n')
+    stale = config / 'themes/nord/waybar.css'
+    stale.write_text(old_default)
+    (data / 'themes/nord/waybar.json').write_text('{"new": "theme bar"}')
+    legacy_bar = config / 'waybar.json'
+    legacy_bar.write_text(old_default)
+    run('theme', 'init')
+    assert stale.read_text() == 'nord' and stale.stat().st_mode & 0o200
+    assert (config / 'themes/nord/waybar.json').read_text() == '{"new": "theme bar"}'
+    assert not legacy_bar.exists()
+    assert personal.read_text() == 'personal edits'
+    legacy_bar.write_text('{"personal": "bar"}')
+    run('theme', 'init')
+    assert legacy_bar.read_text() == '{"personal": "bar"}'
     run('editor', 'init')
     nvim = home / 'config/nvim/init.lua'
     assert nvim.read_text() == '-- original'
