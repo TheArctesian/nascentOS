@@ -20,6 +20,9 @@
   options.nascent.desktop.enable = lib.mkEnableOption "the nascentOS Hyprland desktop prototype";
 
   config = lib.mkIf config.nascent.desktop.enable {
+    # Names the boot menu entries and os-release. distroId stays "nixos" because
+    # tools detect NixOS by it.
+    system.nixos.distroName = lib.mkDefault "nascentOS";
     nix.settings.experimental-features = [
       "nix-command"
       "flakes"

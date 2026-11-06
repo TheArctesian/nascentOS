@@ -238,6 +238,8 @@ let
         font_family JetBrainsMono Nerd Font
         font_size 11
         background #${p.background}
+        # Hyprland blurs what shows through.
+        background_opacity 0.9
         foreground #${p.foreground}
         cursor #${p.accent}
         cursor_trail 1
