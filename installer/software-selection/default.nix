@@ -35,6 +35,11 @@ let
   unfreeNames =
     map (app: lib.getName (getPackage app)) (lib.filter (app: app.packageUnfree or false) native)
     ++ map (app: app.id) (lib.filter (app: app.packageUnfree or false) appImages);
+  agentAdapters = {
+    claude-code = "claude";
+    codex = "codex";
+    opencode = "opencode";
+  };
 in
 {
   options.nascent.software = {
@@ -67,26 +72,18 @@ in
         }) chosen;
         nixpkgs.config.allowUnfreePackages = unfreeNames;
         environment.systemPackages = map getPackage applications;
-        environment.etc = lib.listToAttrs (
-          map
-            (id: {
-              name = "nascentos/agent-adapters/${id}";
-              value = {
-                mode = "0555";
-                text = ''
-                  #!/usr/bin/env bash
-                  set -euo pipefail
-                  exec ${id} "$@"
-                '';
-              };
-            })
-            (
-              lib.filter (id: builtins.elem id cfg.selected) [
-                "codex"
-                "opencode"
-              ]
-            )
-        );
+        # Catalog ID -> agent adapter name (the provider's command).
+        environment.etc = lib.mapAttrs' (id: command: {
+          name = "nascentos/agent-adapters/${command}";
+          value = {
+            mode = "0555";
+            text = ''
+              #!/usr/bin/env bash
+              set -euo pipefail
+              exec ${command} "$@"
+            '';
+          };
+        }) (lib.filterAttrs (id: _: builtins.elem id cfg.selected) agentAdapters);
         fonts.packages = map getPackage fonts;
         fonts.fontconfig.defaultFonts = {
           monospace = lib.mkIf (builtins.elem "fira-code" cfg.selected) (lib.mkDefault [ "Fira Code" ]);

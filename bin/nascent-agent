@@ -16,7 +16,7 @@ case "${1:---help}" in
     defaults="${NASCENT_DATA_DIR:-/etc/nascentos}/agent-adapters"
     [[ -d $defaults ]] || exit 0
     mkdir -p "$adapters"
-    for name in codex opencode; do
+    for name in claude codex opencode; do
       source_adapter="$defaults/$name"
       destination="$adapters/$name"
       [[ -f $source_adapter ]] || continue

@@ -62,10 +62,11 @@ Keybindings follow the owner's bspwm/sxhkd layout.
 | --- | --- |
 | Super + Shift + Enter (or Enter) | Terminal |
 | Super + P (or D) | App launcher |
-| Super + Shift + Space | Desktop menu (apps, screenshot, clipboard, do not disturb, themes, agent, power) |
+| Super + Shift + Space | Desktop menu (apps, install software, update, screenshot, clipboard, do not disturb, themes, agent, power) |
 | Super + A | Selected agent |
 | Super + B / O / Z / G / M / Y | Browser / Obsidian / Zotero / Signal / Slack / Yazi (focus or launch) |
 | Super + I | Open or focus Install nascentOS (live ISO) |
+| Super + Shift + I | Install or remove software from the nascentOS catalog (installed system) |
 | Super + C (or Q) / Shift + C | Close / kill window |
 | Super + T / Shift + T / S / F | Tiled / pseudo-tiled / floating / fullscreen |
 | Super + Space | Monocle (maximise) toggle |

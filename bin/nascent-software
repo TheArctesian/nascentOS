@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+# nascent:summary=Install or remove catalog software by editing /etc/nixos/nascent-software.nix and rebuilding
+set -euo pipefail
+nixos=${NASCENT_NIXOS_DIR:-/etc/nixos}
+module=$nixos/nascent-software.nix
+catalog=${NASCENT_CATALOG:-$nixos/nascentos/installer/software-selection/catalog.json}
+system="$(uname -m)-linux"
+
+# One Python helper owns parsing so the menu and the edits agree on the file format.
+helper() {
+  python3 - "$@" <<'PY'
+import json, re, sys
+action, module, catalog, system, *ids = sys.argv[1:]
+apps = [a for a in json.load(open(catalog))["apps"] if system in a.get("platforms", [])]
+by_id = {a["id"]: a for a in apps}
+pattern = re.compile(r"(nascent\.software\.selected = \[)([^\]]*)(\];)")
+try:
+    text = open(module).read()
+except FileNotFoundError:
+    sys.exit(f"{module} does not exist; software selection is only available on an installed system.")
+match = pattern.search(text)
+if not match:
+    sys.exit(f"Cannot find 'nascent.software.selected = [ ... ];' in {module}.")
+selected = re.findall(r'"([^"]+)"', match.group(2))
+if action == "list":
+    for a in apps:
+        mark = "installed" if a["id"] in selected else ("manual" if a["kind"] != "package" else "")
+        print("\t".join([a["id"], a.get("group", "Other"), a["name"], mark, a.get("url", ""),
+                         a.get("description", "")]))
+    sys.exit(0)
+for app_id in ids:
+    if app_id not in by_id:
+        sys.exit(f"Unknown software ID: {app_id}. Run nascent software list.")
+    if by_id[app_id]["kind"] != "package":
+        sys.exit(f"{by_id[app_id]['name']} is installed manually: {by_id[app_id].get('url', '')}")
+if action == "add":
+    selected += [i for i in ids if i not in selected]
+else:
+    selected = [i for i in selected if i not in ids]
+names = " ".join(json.dumps(i) for i in selected)
+sys.stdout.write(text[:match.start()] + f"nascent.software.selected = [ {names} ];" + text[match.end():])
+PY
+}
+
+apply() {
+  local action=$1; shift
+  [[ $# -gt 0 ]] || { echo "Usage: nascent software $action ID..." >&2; exit 2; }
+  local updated backup
+  updated=$(helper "$action" "$module" "$catalog" "$system" "$@")
+  backup=$(mktemp)
+  trap 'rm -f "$backup"' RETURN
+  cp "$module" "$backup"
+  printf '%s\n' "$updated" | sudo tee "$module" >/dev/null
+  if sudo git -C "$nixos" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    sudo git -C "$nixos" add "$module"
+  fi
+  echo "Rebuilding with: $(grep -o 'selected = \[.*\]' "$module")"
+  if sudo nixos-rebuild switch --flake "$nixos#nascent"; then
+    echo "Done: $action $*"
+  else
+    sudo cp "$backup" "$module"
+    echo "Rebuild failed; $module was restored." >&2
+    return 1
+  fi
+}
+
+# Rebuilds need sudo, so the menu runs the change in a terminal the user can watch.
+in_terminal() {
+  local command
+  printf -v command '%q ' nascent-software "$@"
+  exec nascent-launch terminal --class nascent-software bash -c \
+    "$command; status=\$?; echo; read -rp 'Press Enter to close' _; exit \$status"
+}
+
+menu() {
+  local theme rows groups group choice id name mark url
+  theme=$(nascent-theme path)
+  dmenu() { fuzzel --config "$theme/fuzzel.ini" --dmenu "$@"; }
+  rows=$(helper list "$module" "$catalog" "$system") || {
+    notify-send -a nascentOS 'Software' "$(helper list "$module" "$catalog" "$system" 2>&1 >/dev/null)" 2>/dev/null || true
+    exit 1
+  }
+  groups=$(cut -f2 <<<"$rows" | awk '!seen[$0]++')
+  group=$(dmenu --prompt '󰏔  ' --placeholder 'Install software' --lines "$(wc -l <<<"$groups")" <<<"$groups") || exit 0
+  choice=$(awk -F'\t' -v g="$group" '$2 == g {
+      icon = $4 == "installed" ? "󰄬" : ($4 == "manual" ? "󰏌" : "󰐕")
+      printf "%s  %s\t%s\n", icon, $3, $1 }' <<<"$rows" |
+    dmenu --lines "$(awk -F'\t' -v g="$group" '$2 == g' <<<"$rows" | wc -l)" --with-nth 1 --accept-nth 2 --prompt '󰏔  ' --placeholder "$group  ·  󰄬 installed") || exit 0
+  IFS=$'\t' read -r id _ name mark url _ < <(awk -F'\t' -v i="$choice" '$1 == i' <<<"$rows")
+  case $mark in
+    manual) exec xdg-open "$url" ;;
+    installed)
+      [[ $(printf '%s\n' "Remove $name" Cancel | dmenu --lines 2 --prompt '󰆴  ') == "Remove $name" ]] || exit 0
+      in_terminal remove "$id" ;;
+    *) in_terminal add "$id" ;;
+  esac
+}
+
+case "${1:-menu}" in
+  menu) menu ;;
+  list) helper list "$module" "$catalog" "$system" |
+    awk -F'\t' '{ printf "%-22s %-16s %-10s %s\n", $1, $2, $4, $3 }' ;;
+  add|remove) action=$1; shift; apply "$action" "$@" ;;
+  -h|--help|help)
+    cat <<'HELP'
+nascent software              Open the install menu
+nascent software list         Show catalog software and what is installed
+nascent software add ID...    Add software to /etc/nixos/nascent-software.nix and rebuild
+nascent software remove ID... Remove it again and rebuild
+HELP
+    ;;
+  *) echo "Unknown command: $1. Run nascent software --help." >&2; exit 2 ;;
+esac

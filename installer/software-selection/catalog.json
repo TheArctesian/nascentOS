@@ -63,6 +63,26 @@
       "backend": "nixpkgs"
     },
     {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "group": "AI tools",
+      "kind": "package",
+      "platforms": [
+        "x86_64-linux",
+        "aarch64-linux"
+      ],
+      "proprietary": true,
+      "default": true,
+      "description": "Anthropic terminal coding agent. Sign in with a Claude account or API key after installation.",
+      "url": "https://code.claude.com/docs",
+      "icon": "claude",
+      "package": "claude-code",
+      "license": "unfree",
+      "version": "2.1.223",
+      "source": "https://github.com/NixOS/nixpkgs/blob/cd4ea8d57de16f4810bc5f14207bac45fbf19f67/pkgs/by-name/cl/claude-code/package.nix",
+      "backend": "nixpkgs"
+    },
+    {
       "id": "opencode",
       "name": "OpenCode CLI",
       "group": "AI tools",

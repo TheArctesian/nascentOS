@@ -5,6 +5,10 @@ theme=$(nascent-theme path)
 items=('󰀻  Applications' '󰆍  Terminal' '󰹑  Screenshot area' '󰅌  Clipboard history'
   '󰂛  Do not disturb' '󰏘  Theme: Nord' '󰏘  Theme: Tokyo Night' '󰚩  Agent'
   '󰌾  Lock' '⏻  Power…')
+# Software and updates edit /etc/nixos, so they only appear on an installed system.
+if [[ -f /etc/nixos/nascent-software.nix ]]; then
+  items=("${items[@]:0:2}" '󰏗  Install software' '󰚰  Update nascentOS' "${items[@]:2}")
+fi
 if command -v nascent-install >/dev/null 2>&1; then items=('󰏔  Install nascentOS' "${items[@]}"); fi
 choice=$(printf '%s\n' "${items[@]}" |
   fuzzel --config "$theme/fuzzel.ini" --dmenu --lines "${#items[@]}" --prompt '❯  ' \
@@ -13,6 +17,9 @@ case "${choice#*  }" in
   'Install nascentOS') exec nascent-install ;;
   Applications) exec nascent-launch apps ;;
   Terminal) exec nascent-launch terminal ;;
+  'Install software') exec nascent-software ;;
+  'Update nascentOS') exec nascent-launch terminal --class nascent-software bash -c \
+    "nascent-upgrade; echo; read -rp 'Press Enter to close' _" ;;
   'Screenshot area') exec nascent-shot area ;;
   'Clipboard history') exec nascent-clipboard pick ;;
   'Do not disturb') exec nascent-notify dnd ;;
