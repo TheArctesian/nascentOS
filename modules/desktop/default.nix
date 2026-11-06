@@ -78,7 +78,7 @@ let
               pkgs.xrdb
               pkgs.git
               pkgs.fzf
-              pkgs.nix-search-tv
+              pkgs.brotli
               pkgs.rsync
             ]
             ++ lib.optional config.programs.firefox.enable config.programs.firefox.finalPackage

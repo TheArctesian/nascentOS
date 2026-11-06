@@ -114,45 +114,155 @@ in_terminal() {
   exec nascent-launch terminal --class nascent-software env NASCENT_PAUSE=1 bash -c "$command"
 }
 
-index() {
-  # Only nixpkgs: the NixOS options, Home Manager and NUR indexes are not installable here.
-  nix-search-tv print --indexes nixpkgs | grep -vx 'Indexing packages...'
+# Our own index: name, description, version, licence, free, homepage, command and
+# long description per package, one tab-separated line each, shortest names first
+# so fzf's index tiebreak favours them. The channel's packages.json is 400 MB, so
+# it is parsed as a stream rather than loaded whole.
+cache=${XDG_CACHE_HOME:-$HOME/.cache}/nascent-software
+index_file=$cache/nixpkgs-$system.tsv
+index_url=${NASCENT_PACKAGES_URL:-https://channels.nixos.org/nixos-unstable/packages.json.br}
+
+build_index() {
+  python3 -c '
+import json, sys
+system = sys.argv[1]
+decoder, buf, pos, eof = json.JSONDecoder(), "", 0, False
+
+def fill():
+    global buf, pos, eof
+    chunk = sys.stdin.read(1 << 20)
+    eof = not chunk
+    buf, pos = buf[pos:] + chunk, 0
+
+def skip():
+    global pos
+    while True:
+        while pos < len(buf) and buf[pos] in " \t\r\n,:":
+            pos += 1
+        if pos < len(buf) or eof:
+            return
+        fill()
+
+def value():
+    global pos
+    while True:
+        try:
+            item, end = decoder.raw_decode(buf, pos)
+            if end < len(buf) or eof:
+                pos = end
+                return item
+        except ValueError:
+            if eof:
+                raise
+        fill()
+
+def flat(text):
+    return " ".join(str(text or "").split())
+
+def licence(meta):
+    items = meta.get("license") or []
+    items = items if isinstance(items, list) else [items]
+    names = [i.get("spdxId") or i.get("fullName") or i.get("shortName") or "" if isinstance(i, dict) else str(i)
+             for i in items]
+    free = all(i.get("free", True) for i in items if isinstance(i, dict))
+    return ", ".join(n for n in names if n), "1" if free else "0"
+
+fill()
+start = buf.find("\"packages\":{")
+if start < 0:
+    sys.exit("The package list has an unexpected format.")
+pos = start + len("\"packages\":{")
+rows = []
+while True:
+    skip()
+    if pos >= len(buf) or buf[pos] == "}":
+        break
+    name = value()
+    skip()
+    package = value()
+    meta = package.get("meta") or {}
+    platforms = meta.get("platforms") or []
+    if meta.get("broken") or (platforms and system not in platforms):
+        continue
+    homepage = meta.get("homepage") or ""
+    homepage = homepage[0] if isinstance(homepage, list) and homepage else homepage
+    rows.append([name, flat(meta.get("description")), flat(package.get("version")), *licence(meta),
+                 flat(homepage), flat(meta.get("mainProgram")), flat(meta.get("longDescription"))])
+rows.sort(key=lambda r: (len(r[0]), r[0]))
+sys.stdout.writelines("\t".join(r) + "\n" for r in rows)
+' "$system"
 }
 
-# Installed packages carry a green dot; the name is the second tab-separated field.
+index() {
+  if [[ -s $index_file && -z $(find "$index_file" -mtime +7 2>/dev/null) ]]; then return; fi
+  local tmp
+  mkdir -p "$cache"
+  tmp=$(mktemp "$index_file.XXXXXX")
+  echo 'Downloading the nixpkgs package list…' >&2
+  if curl -fsSL "$index_url" | brotli -dc | build_index >"$tmp" && [[ -s $tmp ]]; then
+    mv "$tmp" "$index_file"
+  else
+    rm -f "$tmp"
+    # A stale list is better than none when offline.
+    [[ -s $index_file ]] || { echo 'Could not download the nixpkgs package list.' >&2; return 1; }
+  fi
+}
+
+# Fields: installed mark, name, padded and dimmed description. fzf matches the name
+# and description; the name alone is accepted and previewed.
 rows() {
   local installed
   installed=$(helper installed "$module" "$catalog" "$system")
-  if [[ ${1:-} == installed ]]; then
-    sort -u <<<"$installed" | awk 'NF { printf "\033[32m●\033[0m\t%s\n", $0 }'
-  else
-    index | awk -v list="$installed" 'BEGIN { n = split(list, a, "\n"); for (i = 1; i <= n; i++) mine[a[i]] = 1 }
-      { printf "%s\t%s\n", ($0 in mine) ? "\033[32m●\033[0m" : " ", $0 }'
-  fi
+  index
+  awk -F'\t' -v list="$installed" -v only="${1:-}" '
+    BEGIN { n = split(list, a, "\n"); for (i = 1; i <= n; i++) if (a[i] != "") mine[a[i]] = 1 }
+    only == "installed" && !($1 in mine) { next }
+    { seen[$1] = 1
+      pad = 28 - length($1); if (pad < 2) pad = 2
+      printf "%s\t%s\t%*s\033[90m%s\033[0m\n", ($1 in mine) ? "\033[32m●\033[0m" : " ", $1, pad, "", $2 }
+    END { if (only == "installed") for (name in mine) if (!(name in seen)) printf "\033[32m●\033[0m\t%s\t\n", name }
+  ' "$index_file"
 }
 
 preview() {
-  if helper installed "$module" "$catalog" "$system" | grep -qxF -- "$1"; then
+  local name=$1 line
+  if helper installed "$module" "$catalog" "$system" | grep -qxF -- "$name"; then
     printf '\033[32m● Installed\033[0m  ·  Ctrl-R removes it\n\n'
   fi
-  # The index colours names red; use the theme's accent (cyan) instead.
-  nix-search-tv preview --indexes nixpkgs "$1" 2>/dev/null | sed 's/\x1b\[31m/\x1b[36m/g' ||
-    printf '%s\n\nNo details in the package index.\n' "$1"
+  line=$(awk -F'\t' -v n="$name" '$1 == n { print; exit }' "$index_file" 2>/dev/null)
+  if [[ -z $line ]]; then
+    printf '\033[1;36m%s\033[0m\n\nNo details in the package index.\n' "$name"
+    return
+  fi
+  local _ description version licence free homepage program long
+  IFS=$'\t' read -r _ description version licence free homepage program long <<<"$line"
+  printf '\033[1;36m%s\033[0m  \033[90m%s\033[0m\n\n' "$name" "$version"
+  [[ -n $description ]] && printf '%s\n\n' "$description"
+  if [[ $free == 1 ]]; then
+    printf '\033[90mLicence\033[0m   %s \033[32m(free)\033[0m\n' "${licence:-unknown}"
+  else
+    printf '\033[90mLicence\033[0m   %s \033[33m(unfree, allowed when you install it)\033[0m\n' "${licence:-unknown}"
+  fi
+  [[ -n $homepage ]] && printf '\033[90mHomepage\033[0m  %s\n' "$homepage"
+  [[ -n $program ]] && printf '\033[90mCommand\033[0m   %s\n' "$program"
+  [[ -n $long ]] && printf '\n%s\n' "$long"
+  return 0
 }
 
 search() {
   [[ -t 0 && -t 1 ]] || in_terminal search
   helper installed "$module" "$catalog" "$system" >/dev/null || { pause; exit 1; }
+  index || { pause; exit 1; }
   local self output key names=()
   self=$(command -v nascent-software)
   # Terminal palette colours keep the picker on the active nascentOS theme.
-  output=$(rows | fzf --ansi --multi --delimiter '\t' --nth 2 --accept-nth 2 \
+  output=$(rows | fzf --ansi --multi --delimiter '\t' --nth 2,3 --accept-nth 2 \
       --layout reverse --border rounded --border-label ' 󰏔  Software ' --border-label-pos 3 \
-      --prompt '  ' --pointer '▌' --marker '+' --info inline-right --tiebreak begin,length --tabstop 2 \
+      --prompt '  ' --pointer '▌' --marker '+' --info inline-right --tiebreak begin,index --tabstop 1 --no-hscroll \
       --footer 'Tab select · Enter install · Ctrl-R remove · Ctrl-L installed · Ctrl-A all · Esc quit' \
       --expect ctrl-r \
       --preview "$self preview {2}" \
-      --preview-window 'right,60%,border-left,wrap,<110(down,55%,border-top,wrap)' \
+      --preview-window 'right,45%,border-left,wrap,<50(down,50%,border-top,wrap)' \
       --bind "ctrl-l:reload($self _rows installed)+change-prompt(● )" \
       --bind "ctrl-a:reload($self _rows)+change-prompt(  )" \
       --color 'fg:-1,bg:-1,hl:6,fg+:15,bg+:0,hl+:6,info:8,prompt:4,pointer:6,marker:2,header:8,border:8,label:4,spinner:6' \
@@ -200,7 +310,7 @@ case "${1:-menu}" in
   -h|--help|help)
     cat <<'HELP'
 nascent software                Open the install menu (curated picks and search)
-nascent software search         Search all of nixpkgs; Tab selects, Enter installs, Ctrl-R removes
+nascent software search         Search nixpkgs names and descriptions; Tab selects, Enter installs, Ctrl-R removes
 nascent software list           Show the curated catalog and what is installed
 nascent software installed      Show everything installed with nascent software
 nascent software add NAME...    Add catalog IDs or nixpkgs packages and rebuild
