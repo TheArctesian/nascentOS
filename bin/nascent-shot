@@ -6,9 +6,9 @@ mkdir -p "$dir"
 file="$dir/$(date +%Y-%m-%d_%H-%M-%S).png"
 case "${1:-}" in
   full) grim "$file" ;;
-  area) region=$(slurp) || exit 0; grim -g "$region" "$file" ;;
+  area) region=$(slurp -b 2e344088 -c 88c0d0ff -s 88c0d01a -w 2 -B 4c566a66) || exit 0; grim -g "$region" "$file" ;;
   delayed) sleep 3; grim "$file" ;;
   *) echo 'Usage: nascent-shot full|area|delayed' >&2; exit 2 ;;
 esac
 wl-copy --type image/png < "$file"
-notify-send -a nascentOS -i "$file" 'Screenshot copied' "$file"
+notify-send -a nascentOS -i "$file" 'Screenshot copied' "Saved as ${file##*/} in ${dir/#$HOME/\~}"
