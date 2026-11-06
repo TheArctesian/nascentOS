@@ -61,7 +61,7 @@ Keybindings follow the owner's bspwm/sxhkd layout.
 | Shortcut | Action |
 | --- | --- |
 | Super + Shift + Enter (or Enter) | Terminal |
-| Super + P (or D) | App launcher |
+| Super + Space (or D) | App launcher |
 | Super + Shift + Space | Desktop menu (apps, install software, update, screenshot, clipboard, do not disturb, themes, agent, power) |
 | Super + A | Selected agent |
 | Super + B / O / Z / G / M / Y | Browser / Obsidian / Zotero / Signal / Slack / Yazi (focus or launch) |
@@ -69,7 +69,7 @@ Keybindings follow the owner's bspwm/sxhkd layout.
 | Super + Shift + I | Search all of nixpkgs and install or remove software (installed system) |
 | Super + C (or Q) / Shift + C | Close / kill window |
 | Super + T / Shift + T / S / F | Tiled / pseudo-tiled / floating / fullscreen |
-| Super + Space | Monocle (maximise) toggle |
+| Super + Shift + F | Monocle (maximise) toggle |
 | Super + h j k l | Focus window |
 | Super + Shift + h j k l | Swap window |
 | Super + Alt + h j k l | Resize window |

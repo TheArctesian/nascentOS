@@ -91,7 +91,7 @@ end
 -- Launchers and session
 bind("SUPER + SHIFT + Return", run("nascent launch terminal"))
 bind("SUPER + Return", run("nascent launch terminal"))
-bind("SUPER + P", run("nascent launch apps"))
+bind("SUPER + Space", run("nascent launch apps"))
 bind("SUPER + D", run("nascent launch apps"))
 bind("SUPER + SHIFT + Space", run("nascent menu"))
 bind("SUPER + A", run("nascent-agent-ui"))
@@ -114,7 +114,7 @@ bind("SUPER + T", hl.dsp.window.float({ action = "unset" }))
 bind("SUPER + SHIFT + T", hl.dsp.window.pseudo())
 bind("SUPER + S", hl.dsp.window.float({ action = "toggle" }))
 bind("SUPER + F", hl.dsp.window.fullscreen({ mode = "fullscreen" }))
-bind("SUPER + Space", hl.dsp.window.fullscreen({ mode = "maximized" })) -- monocle
+bind("SUPER + SHIFT + F", hl.dsp.window.fullscreen({ mode = "maximized" })) -- monocle
 
 -- Focus, swap, resize and preselect with hjkl
 local directions = { h = "left", j = "down", k = "up", l = "right" }

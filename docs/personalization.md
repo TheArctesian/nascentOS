@@ -5,7 +5,7 @@ theme bundles and the selected personal LazyVim config into the user's XDG confi
 directory, dereferencing Nix store symlinks and making the copies writable. Existing
 user directories/files are never replaced. No Home Manager is used.
 
-`nascent menu` (Super + Space) offers apps, terminal, themes, agent, lock and logout.
+`nascent menu` (Super + Shift + Space) offers apps, terminal, themes, agent, lock and logout.
 `nascent launch apps` (Super + D) opens the application launcher directly.
 The inset bar's **nascentOS** button reopens the menu. In the live ISO, the bar
 also has **Install nascentOS**, available with Super + I and in the menu.
