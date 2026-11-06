@@ -110,6 +110,15 @@ let
       exit "$status"
     '';
   };
+  # Theme tools would fight the shipped theme; keep them installed but out of the launcher.
+  hiddenApps = lib.hiPrio (
+    pkgs.runCommand "nascent-hidden-apps" { } ''
+      mkdir -p $out/share/applications
+      for id in kvantummanager qt5ct qt6ct nm-connection-editor; do
+        printf '[Desktop Entry]\nType=Application\nName=%s\nNoDisplay=true\n' "$id" > $out/share/applications/$id.desktop
+      done
+    ''
+  );
   # Nord on the virtual console, so the greeter and TTYs match the desktop.
   consolePalette = [
     "2e3440"
@@ -196,6 +205,7 @@ in
     };
 
     environment.systemPackages = with pkgs; [
+      hiddenApps
       session
       commands
       kitty
