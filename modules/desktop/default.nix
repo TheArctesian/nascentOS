@@ -76,6 +76,8 @@ let
               pkgs.playerctl
               pkgs.wireplumber
               pkgs.xrdb
+              pkgs.git
+              pkgs.rsync
             ]
             ++ lib.optional config.programs.firefox.enable config.programs.firefox.finalPackage
           )

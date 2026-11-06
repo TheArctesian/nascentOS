@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# nascent:summary=Update the installed system to the latest nascentOS source and rebuild
+set -euo pipefail
+repo=${NASCENT_UPGRADE_REPO:-https://github.com/TheArctesian/nascentOS}
+ref=${NASCENT_UPGRADE_REF:-main}
+nixos=${NASCENT_NIXOS_DIR:-/etc/nixos}
+action=switch
+case "${1:-}" in
+  ''|switch) ;;
+  boot|build) action=$1 ;;
+  -h|--help|help)
+    cat <<HELP
+nascent upgrade [switch|boot|build]
+  Fetch $repo ($ref), replace $nixos/nascentos with it,
+  follow its pinned nixpkgs and run nixos-rebuild (default: switch).
+  boot applies on the next reboot; build only checks that it builds.
+  The previous source is kept at $nixos/nascentos.previous and restored if the build fails.
+HELP
+    exit 0 ;;
+  *) echo "Unknown option: $1. Run nascent upgrade --help." >&2; exit 2 ;;
+esac
+
+[[ -d $nixos/nascentos && -f $nixos/flake.nix ]] ||
+  { echo "No installed nascentOS configuration at $nixos." >&2; exit 1; }
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+echo "Fetching nascentOS ($ref)…"
+git clone --quiet --depth 1 --branch "$ref" "$repo" "$work/src"
+new=$(git -C "$work/src" rev-parse HEAD)
+old=$(cat "$nixos/nascentos/.nascent-revision" 2>/dev/null || echo unknown)
+echo "Installed: ${old:0:12}  Latest: ${new:0:12}  $(git -C "$work/src" log -1 --format=%s)"
+if [[ $old == "$new" && $action == switch ]]; then
+  echo 'Source already up to date; rebuilding anyway to apply any local edits.'
+fi
+printf '%s\n' "$new" >"$work/src/.nascent-revision"
+rm -rf "$work/src/.git"
+
+rev=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["nodes"]["nixpkgs"]["locked"]["rev"])' \
+  "$work/src/flake.lock")
+[[ $rev =~ ^[0-9a-f]{40}$ ]] || { echo 'The new source has no valid pinned nixpkgs revision.' >&2; exit 1; }
+
+echo 'Replacing the installed source (sudo)…'
+sudo rm -rf "$nixos/nascentos.previous"
+sudo cp -a "$nixos/nascentos" "$nixos/nascentos.previous"
+sudo cp -a "$nixos/flake.nix" "$nixos/flake.lock" "$nixos/nascentos.previous/" 2>/dev/null || true
+sudo rsync -a --delete "$work/src/" "$nixos/nascentos/"
+sudo sed -i -E "s|github:NixOS/nixpkgs/[0-9a-f]{40}|github:NixOS/nixpkgs/$rev|" "$nixos/flake.nix"
+sudo cp "$nixos/nascentos/flake.lock" "$nixos/flake.lock"
+# Flakes only see files Git tracks when the configuration directory is a repository.
+if sudo git -C "$nixos" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  sudo git -C "$nixos" add -A
+fi
+if grep -q 'tuigreet' "$nixos/nascent-desktop.nix" 2>/dev/null; then
+  echo "Note: $nixos/nascent-desktop.nix sets its own greeter command; remove it for the themed login screen."
+fi
+
+if sudo nixos-rebuild "$action" --flake "$nixos#nascent"; then
+  echo "nascentOS updated to ${new:0:12}."
+  [[ $action == switch ]] && echo 'Log out and back in to restart the desktop with the new configuration.'
+  exit 0
+fi
+echo 'Rebuild failed; restoring the previous source.' >&2
+sudo cp -a "$nixos/nascentos.previous/flake.nix" "$nixos/nascentos.previous/flake.lock" "$nixos/"
+sudo rm -f "$nixos/nascentos.previous/flake.nix" "$nixos/nascentos.previous/flake.lock"
+sudo rsync -a --delete "$nixos/nascentos.previous/" "$nixos/nascentos/"
+exit 1

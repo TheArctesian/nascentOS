@@ -99,8 +99,11 @@ theme changes need no NixOS or Home Manager rebuild.
 After a test install, remove the ISO and verify the installed boot, login, graphics,
 networking, audio, lock/unlock and suspend. Review `/etc/nixos` before future
 system changes. Subsequent configuration builds use `/etc/nixos#nascent`; update
-the flake intentionally and use NixOS generations for rollback. This prototype
-does not configure automatic deployment or upgrades.
+the flake intentionally and use NixOS generations for rollback. `nascent upgrade`
+fetches the latest source from GitHub, replaces `/etc/nixos/nascentos`, follows
+its pinned nixpkgs and runs `nixos-rebuild switch` (`boot` or `build` instead
+when given); it restores the previous source if the rebuild fails. Nothing
+upgrades automatically.
 
 ## Manual fallback
 
