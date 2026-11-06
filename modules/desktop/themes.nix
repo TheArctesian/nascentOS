@@ -100,6 +100,7 @@ let
             "pulseaudio"
             "battery"
             "custom/clipboard"
+            "custom/notify"
             "custom/power"
             "tray"
           ];
@@ -181,6 +182,14 @@ let
             tooltip-format = "Clipboard history · Super+V";
             on-click = "nascent-clipboard pick";
           };
+          "custom/notify" = {
+            exec = "nascent-notify status";
+            return-type = "json";
+            interval = "once";
+            signal = 8;
+            on-click = "nascent-notify dnd";
+            on-click-right = "nascent-notify restore";
+          };
           "custom/power" = {
             format = "${tint red "⏻"}";
             tooltip-format = "Power · Super+Shift+E";
@@ -211,9 +220,11 @@ let
         #window { padding: 0 10px; color: alpha(#${p.foreground}, 0.8); }
         window#waybar.empty #window { padding: 0; }
         #clock { font-weight: bold; padding: 0 12px; }
-        #cpu, #memory, #disk, #pulseaudio, #battery, #custom-clipboard, #custom-power, #tray { padding: 0 8px; }
+        #cpu, #memory, #disk, #pulseaudio, #battery, #custom-clipboard, #custom-notify, #custom-power, #tray { padding: 0 8px; }
         #custom-power { padding: 0 12px 0 8px; }
-        #pulseaudio:hover, #custom-clipboard:hover, #custom-power:hover, #clock:hover { background: alpha(#${p.surface}, 0.7); border-radius: 5px; }
+        #pulseaudio:hover, #custom-clipboard:hover, #custom-notify:hover, #custom-power:hover, #clock:hover { background: alpha(#${p.surface}, 0.7); border-radius: 5px; }
+        #custom-notify { color: #${builtins.elemAt p.colors 4}; }
+        #custom-notify.dnd { color: #${p.muted}; }
         #pulseaudio.muted { color: #${p.muted}; }
         #battery.warning:not(.charging) { color: #${builtins.elemAt p.colors 3}; }
         #battery.critical:not(.charging) { color: #${builtins.elemAt p.colors 1}; }
@@ -357,6 +368,7 @@ let
         margin=10
         width=380
         icons=1
+        icon-path=/run/current-system/sw/share/icons/Papirus-Dark
         max-icon-size=40
         default-timeout=6000
         layer=overlay
@@ -365,6 +377,17 @@ let
         [urgency=critical]
         border-color=#${builtins.elemAt p.colors 1}
         default-timeout=0
+        [mode=do-not-disturb]
+        invisible=1
+        [app-name=nascent-osd]
+        anchor=top-center
+        width=300
+        history=0
+        icons=1
+        max-icon-size=24
+        format=<b>%s</b>
+        progress-color=over #${p.accent}66
+        invisible=0
       '';
     }
   ];

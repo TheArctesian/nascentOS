@@ -76,13 +76,15 @@ Keybindings follow the owner's bspwm/sxhkd layout.
 | Super + 1…0 / Shift + 1…0 | Workspace / move window to workspace |
 | Super + Left / Right (or < >) | Previous / next workspace |
 | Super + V | Clipboard history |
+| Super + N / Shift + N | Show the last notification again / toggle do not disturb (also the bar bell) |
 | Print / Super + Shift + S / Ctrl + Print | Screenshot: full / area / delayed (copied, saved to ~/Pictures/Screenshots) |
 | Super + Shift + E (or Pause) | Power menu (lock, suspend, log out, reboot, shut down) |
 | Super + Escape / Shift + R | Reload compositor config |
 | Super + Shift + Q | Exit session |
 | Super + mouse drag | Move (left button) / resize (right button) |
 
-Volume, microphone, brightness and media keys work, including on the lock screen.
+Volume, microphone, brightness and media keys work, including on the lock screen, and show a
+brief on-screen level.
 The display scale is picked from the panel's pixel density (for example 2× on a
 Framework 13); set your own with `hl.monitor` in `~/.config/nascentos/hyprland.lua`.
 

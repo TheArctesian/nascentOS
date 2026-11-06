@@ -1,13 +1,29 @@
 #!/usr/bin/env bash
 # nascent:summary=Volume, microphone, brightness and playback keys
 set -euo pipefail
+# One self-replacing notification acts as the on-screen display for level changes.
+osd() {
+  notify-send -a nascent-osd -t 1200 -i "$1" -h string:x-canonical-private-synchronous:nascent-osd \
+    -h "int:value:$2" "$3" 2>/dev/null || true
+}
+audio_osd() {
+  local target=$1 label=$2 icon=$3 state level
+  state=$(wpctl get-volume "$target" 2>/dev/null) || return 0
+  level=$(awk '{ printf "%d", $2 * 100 + 0.5 }' <<<"$state")
+  if [[ $state == *MUTED* ]]; then osd "$icon-muted" 0 "$label muted"; else osd "$icon-high" "$level" "$label $level%"; fi
+}
+brightness_osd() {
+  local level
+  level=$(brightnessctl -m 2>/dev/null | awk -F, '{ gsub("%", "", $4); print $4 }') || return 0
+  osd display-brightness "${level:-0}" "Brightness ${level:-0}%"
+}
 case "${1:-} ${2:-}" in
-  'volume up') wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+ ;;
-  'volume down') wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- ;;
-  'volume mute') wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle ;;
-  'mic mute') wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle ;;
-  'brightness up') brightnessctl -q set 5%+ ;;
-  'brightness down') brightnessctl -q -n 1% set 5%- ;;
+  'volume up') wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+; audio_osd @DEFAULT_AUDIO_SINK@ Volume audio-volume ;;
+  'volume down') wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-; audio_osd @DEFAULT_AUDIO_SINK@ Volume audio-volume ;;
+  'volume mute') wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle; audio_osd @DEFAULT_AUDIO_SINK@ Volume audio-volume ;;
+  'mic mute') wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle; audio_osd @DEFAULT_AUDIO_SOURCE@ Microphone audio-input-microphone ;;
+  'brightness up') brightnessctl -q set 5%+; brightness_osd ;;
+  'brightness down') brightnessctl -q -n 1% set 5%-; brightness_osd ;;
   'play '*) playerctl play-pause ;;
   'next '*) playerctl next ;;
   'previous '*) playerctl previous ;;

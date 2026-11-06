@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# nascent:summary=Notifications: toggle do-not-disturb, bring back the last one, report bar status
+set -euo pipefail
+quiet() { makoctl mode 2>/dev/null | grep -qx do-not-disturb; }
+case "${1:-}" in
+  dnd)
+    makoctl mode -t do-not-disturb >/dev/null
+    pkill -RTMIN+8 -f '^waybar --config' 2>/dev/null || true ;;
+  restore) makoctl restore ;;
+  status)
+    if quiet; then
+      printf '%s\n' '{"text":"󰂛","class":"dnd","tooltip":"Do not disturb · click to resume"}'
+    else
+      printf '%s\n' '{"text":"󰂚","tooltip":"Notifications · click to silence · right-click for the last one"}'
+    fi ;;
+  *) echo 'Usage: nascent-notify dnd|restore|status' >&2; exit 2 ;;
+esac
