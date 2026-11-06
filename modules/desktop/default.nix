@@ -204,6 +204,7 @@ in
       mako
       hyprlock
       hypridle
+      fastfetch
       wl-clipboard
       pavucontrol
       networkmanagerapplet
@@ -255,6 +256,70 @@ in
           (builtins.readFile ./hyprland.lua);
       "nascentos/shipped-defaults.sha256".text = shippedDefaults;
       # Dim, lock, then blank the panel when idle; ~/.config/hypr/hypridle.conf overrides it.
+      "xdg/fastfetch/config.jsonc".text = builtins.toJSON {
+        logo = {
+          type = "file";
+          source = "/etc/nascentos/branding/terminal-logo.txt";
+          color."1" = "cyan";
+          padding = {
+            top = 2;
+            right = 4;
+          };
+        };
+        display = {
+          separator = "  ";
+          color.keys = "blue";
+          key.width = 9;
+        };
+        modules = [
+          {
+            type = "title";
+            color = {
+              user = "cyan";
+              host = "cyan";
+            };
+          }
+          "separator"
+          {
+            type = "os";
+            key = "os";
+            format = "nascentOS · NixOS {version}";
+          }
+          {
+            type = "kernel";
+            key = "kernel";
+          }
+          {
+            type = "wm";
+            key = "wm";
+          }
+          {
+            type = "terminal";
+            key = "term";
+          }
+          {
+            type = "shell";
+            key = "shell";
+          }
+          {
+            type = "packages";
+            key = "pkgs";
+          }
+          {
+            type = "memory";
+            key = "memory";
+          }
+          {
+            type = "uptime";
+            key = "uptime";
+          }
+          "break"
+          {
+            type = "colors";
+            symbol = "circle";
+          }
+        ];
+      };
       "xdg/hypr/hypridle.conf".text = ''
         general {
           lock_cmd = pidof hyprlock || nascent-launch lock
