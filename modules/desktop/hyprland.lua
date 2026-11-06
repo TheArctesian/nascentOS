@@ -70,6 +70,9 @@ hl.on("hyprland.start", function()
   if live then
     live:close()
     hl.exec_cmd("nascent-install")
+  else
+    -- Never lock the live installer session mid-install.
+    hl.exec_cmd("hypridle")
   end
 end)
 

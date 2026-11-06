@@ -109,5 +109,5 @@ See [testing and Mac VM constraints](docs/testing.md),
 [bounded voice desktop commands](docs/voice.md).
 
 This is a prototype: login/lock, portal integration, rendering, audio, resume and
-physical hardware behavior need runtime validation. No automatic idle lock is
-configured yet. There is no agent orchestrator or remote access default. Model services are opt-in.
+physical hardware behavior need runtime validation. After 5 idle minutes the screen
+dims, at 10 it locks and then blanks; the live installer never locks. There is no agent orchestrator or remote access default. Model services are opt-in.

@@ -203,6 +203,7 @@ in
       waybar
       mako
       hyprlock
+      hypridle
       wl-clipboard
       pavucontrol
       networkmanagerapplet
@@ -253,6 +254,28 @@ in
           [ "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1" ]
           (builtins.readFile ./hyprland.lua);
       "nascentos/shipped-defaults.sha256".text = shippedDefaults;
+      # Dim, lock, then blank the panel when idle; ~/.config/hypr/hypridle.conf overrides it.
+      "xdg/hypr/hypridle.conf".text = ''
+        general {
+          lock_cmd = pidof hyprlock || nascent-launch lock
+          before_sleep_cmd = loginctl lock-session
+          after_sleep_cmd = hyprctl dispatch 'hl.dsp.dpms({ action = "on" })'
+        }
+        listener {
+          timeout = 300
+          on-timeout = ${pkgs.brightnessctl}/bin/brightnessctl -s set 10%
+          on-resume = ${pkgs.brightnessctl}/bin/brightnessctl -r
+        }
+        listener {
+          timeout = 600
+          on-timeout = loginctl lock-session
+        }
+        listener {
+          timeout = 660
+          on-timeout = hyprctl dispatch 'hl.dsp.dpms({ action = "off" })'
+          on-resume = hyprctl dispatch 'hl.dsp.dpms({ action = "on" })'
+        }
+      '';
 
     };
   };
