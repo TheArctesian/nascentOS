@@ -105,6 +105,15 @@ its pinned nixpkgs and runs `nixos-rebuild switch` (`boot` or `build` instead
 when given); it restores the previous source if the rebuild fails. Nothing
 upgrades automatically.
 
+`nascent software search` (Super+Shift+I) searches every nixpkgs package with a
+preview of its description, licence and command. Tab selects several, Enter
+installs, Ctrl-R removes and Ctrl-L shows what is installed. Choices are written
+to `nascent.software.packages` in `/etc/nixos/nascent-software.nix` and applied
+with `nixos-rebuild switch`, so they are part of the system and its rollbacks;
+the file is restored if the rebuild fails. Choosing an unfree package permits it.
+The index is the current nixos-unstable package list, cached for a week, so a
+version shown there can be newer than the one your pinned nixpkgs installs.
+
 ## Manual fallback
 
 For recovery or a platform requiring a custom configuration, follow the

@@ -16,7 +16,7 @@ nascent hardware generate DIR    Generate a reviewable profile without applying 
 nascent logo [--plain|--color]     Display the approved Nord terminal logo
 nascent menu                     Open the desktop menu
 nascent upgrade [boot|build]     Update to the latest nascentOS source and rebuild
-nascent software [list|add|remove ID]  Install catalog software (menu without arguments)
+nascent software [search|add|remove]  Find and install any nixpkgs package
 nascent editor [FILES...]         Open your writable LazyVim configuration
 nascent wallpaper set FILE       Select a wallpaper without rebuilding
 nascent voice --help             Bounded speech/text browser commands

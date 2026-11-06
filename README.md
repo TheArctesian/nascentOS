@@ -66,7 +66,7 @@ Keybindings follow the owner's bspwm/sxhkd layout.
 | Super + A | Selected agent |
 | Super + B / O / Z / G / M / Y | Browser / Obsidian / Zotero / Signal / Slack / Yazi (focus or launch) |
 | Super + I | Open or focus Install nascentOS (live ISO) |
-| Super + Shift + I | Install or remove software from the nascentOS catalog (installed system) |
+| Super + Shift + I | Search all of nixpkgs and install or remove software (installed system) |
 | Super + C (or Q) / Shift + C | Close / kill window |
 | Super + T / Shift + T / S / F | Tiled / pseudo-tiled / floating / fullscreen |
 | Super + Space | Monocle (maximise) toggle |

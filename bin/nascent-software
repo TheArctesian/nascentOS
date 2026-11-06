@@ -1,87 +1,179 @@
 #!/usr/bin/env bash
-# nascent:summary=Install or remove catalog software by editing /etc/nixos/nascent-software.nix and rebuilding
+# nascent:summary=Find, install and remove software by editing /etc/nixos/nascent-software.nix and rebuilding
 set -euo pipefail
 nixos=${NASCENT_NIXOS_DIR:-/etc/nixos}
 module=$nixos/nascent-software.nix
 catalog=${NASCENT_CATALOG:-$nixos/nascentos/installer/software-selection/catalog.json}
 system="$(uname -m)-linux"
 
-# One Python helper owns parsing so the menu and the edits agree on the file format.
+# One Python helper owns the file format so the menus and the edits agree on it.
+# Catalog IDs live in nascent.software.selected; any other nixpkgs attribute in
+# nascent.software.packages.
 helper() {
   python3 - "$@" <<'PY'
 import json, re, sys
-action, module, catalog, system, *ids = sys.argv[1:]
+action, module, catalog, system, *names = sys.argv[1:]
 apps = [a for a in json.load(open(catalog))["apps"] if system in a.get("platforms", [])]
 by_id = {a["id"]: a for a in apps}
-pattern = re.compile(r"(nascent\.software\.selected = \[)([^\]]*)(\];)")
 try:
     text = open(module).read()
 except FileNotFoundError:
-    sys.exit(f"{module} does not exist; software selection is only available on an installed system.")
-match = pattern.search(text)
-if not match:
+    sys.exit(f"{module} does not exist; installing software needs an installed nascentOS system.")
+
+def find(key):
+    return re.search(r"nascent\.software\.%s = \[([^\]]*)\];" % key, text)
+
+selected_match = find("selected")
+if not selected_match:
     sys.exit(f"Cannot find 'nascent.software.selected = [ ... ];' in {module}.")
-selected = re.findall(r'"([^"]+)"', match.group(2))
+packages_match = find("packages")
+selected = re.findall(r'"([^"]+)"', selected_match.group(1))
+packages = re.findall(r'"([^"]+)"', packages_match.group(1)) if packages_match else []
+
 if action == "list":
     for a in apps:
         mark = "installed" if a["id"] in selected else ("manual" if a["kind"] != "package" else "")
         print("\t".join([a["id"], a.get("group", "Other"), a["name"], mark, a.get("url", ""),
                          a.get("description", "")]))
     sys.exit(0)
-for app_id in ids:
-    if app_id not in by_id:
-        sys.exit(f"Unknown software ID: {app_id}. Run nascent software list.")
-    if by_id[app_id]["kind"] != "package":
-        sys.exit(f"{by_id[app_id]['name']} is installed manually: {by_id[app_id].get('url', '')}")
-if action == "add":
-    selected += [i for i in ids if i not in selected]
+if action == "installed":
+    # Catalog entries report their nixpkgs attribute so search can mark them too.
+    for i in selected:
+        print(by_id[i].get("package") or i if i in by_id else i)
+    print("\n".join(packages))
+    sys.exit(0)
+
+for name in names:
+    if not re.fullmatch(r"[A-Za-z0-9_+-][A-Za-z0-9_.+-]*", name):
+        sys.exit(f"Not a package name: {name}")
+    if name in by_id and by_id[name]["kind"] != "package":
+        sys.exit(f"{by_id[name]['name']} is installed manually: {by_id[name].get('url', '')}")
+catalog_by_package = {a.get("package"): a["id"] for a in apps if a.get("package")}
+for name in names:
+    target = name if name in by_id else catalog_by_package.get(name)
+    if action == "add":
+        if target:
+            selected += [] if target in selected else [target]
+        elif name not in packages:
+            packages.append(name)
+    else:
+        if target and target in selected:
+            selected.remove(target)
+        elif name in packages:
+            packages.remove(name)
+        else:
+            sys.exit(f"{name} was not installed with nascent software.")
+
+def render(values):
+    return " ".join(json.dumps(v) for v in values)
+
+text = (text[:selected_match.start()] + f"nascent.software.selected = [ {render(selected)} ];"
+        + text[selected_match.end():])
+line = f"nascent.software.packages = [ {render(packages)} ];"
+if packages_match:
+    text = re.sub(r"nascent\.software\.packages = \[[^\]]*\];", lambda _: line, text, count=1)
 else:
-    selected = [i for i in selected if i not in ids]
-names = " ".join(json.dumps(i) for i in selected)
-sys.stdout.write(text[:match.start()] + f"nascent.software.selected = [ {names} ];" + text[match.end():])
+    text = re.sub(r"(\n([ \t]*)nascent\.software\.selected = [^\n]*)",
+                  lambda m: m.group(1) + "\n" + m.group(2) + line, text, count=1)
+sys.stdout.write(text)
 PY
+}
+
+pause() {
+  if [[ -n ${NASCENT_PAUSE:-} ]]; then echo; read -rp 'Press Enter to close' _ || true; fi
 }
 
 apply() {
   local action=$1; shift
-  [[ $# -gt 0 ]] || { echo "Usage: nascent software $action ID..." >&2; exit 2; }
-  local updated backup
-  updated=$(helper "$action" "$module" "$catalog" "$system" "$@")
+  [[ $# -gt 0 ]] || { echo "Usage: nascent software $action NAME..." >&2; exit 2; }
+  local updated backup status=0
+  updated=$(helper "$action" "$module" "$catalog" "$system" "$@") || { pause; return 1; }
   backup=$(mktemp)
-  trap 'rm -f "$backup"' RETURN
   cp "$module" "$backup"
   printf '%s\n' "$updated" | sudo tee "$module" >/dev/null
   if sudo git -C "$nixos" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     sudo git -C "$nixos" add "$module"
   fi
-  echo "Rebuilding with: $(grep -o 'selected = \[.*\]' "$module")"
+  printf '\n\033[1m%s:\033[0m %s\n\n' "${action^}" "$*"
   if sudo nixos-rebuild switch --flake "$nixos#nascent"; then
-    echo "Done: $action $*"
+    printf '\n\033[32m󰄬 Done.\033[0m %s: %s\n' "$action" "$*"
   else
     sudo cp "$backup" "$module"
-    echo "Rebuild failed; $module was restored." >&2
-    return 1
+    printf '\n\033[31mRebuild failed;\033[0m %s was restored.\n' "$module" >&2
+    status=1
   fi
+  rm -f "$backup"
+  pause
+  return $status
 }
 
-# Rebuilds need sudo, so the menu runs the change in a terminal the user can watch.
+# Rebuilds need sudo, so desktop entry points run in a terminal the user can watch.
 in_terminal() {
   local command
   printf -v command '%q ' nascent-software "$@"
-  exec nascent-launch terminal --class nascent-software bash -c \
-    "$command; status=\$?; echo; read -rp 'Press Enter to close' _; exit \$status"
+  exec nascent-launch terminal --class nascent-software env NASCENT_PAUSE=1 bash -c "$command"
+}
+
+index() {
+  # Only nixpkgs: the NixOS options, Home Manager and NUR indexes are not installable here.
+  nix-search-tv print --indexes nixpkgs | grep -vx 'Indexing packages...'
+}
+
+# Installed packages carry a green dot; the name is the second tab-separated field.
+rows() {
+  local installed
+  installed=$(helper installed "$module" "$catalog" "$system")
+  if [[ ${1:-} == installed ]]; then
+    sort -u <<<"$installed" | awk 'NF { printf "\033[32m●\033[0m\t%s\n", $0 }'
+  else
+    index | awk -v list="$installed" 'BEGIN { n = split(list, a, "\n"); for (i = 1; i <= n; i++) mine[a[i]] = 1 }
+      { printf "%s\t%s\n", ($0 in mine) ? "\033[32m●\033[0m" : " ", $0 }'
+  fi
+}
+
+preview() {
+  if helper installed "$module" "$catalog" "$system" | grep -qxF -- "$1"; then
+    printf '\033[32m● Installed\033[0m  ·  Ctrl-R removes it\n\n'
+  fi
+  # The index colours names red; use the theme's accent (cyan) instead.
+  nix-search-tv preview --indexes nixpkgs "$1" 2>/dev/null | sed 's/\x1b\[31m/\x1b[36m/g' ||
+    printf '%s\n\nNo details in the package index.\n' "$1"
+}
+
+search() {
+  [[ -t 0 && -t 1 ]] || in_terminal search
+  helper installed "$module" "$catalog" "$system" >/dev/null || { pause; exit 1; }
+  local self output key names=()
+  self=$(command -v nascent-software)
+  # Terminal palette colours keep the picker on the active nascentOS theme.
+  output=$(rows | fzf --ansi --multi --delimiter '\t' --nth 2 --accept-nth 2 \
+      --layout reverse --border rounded --border-label ' 󰏔  Software ' --border-label-pos 3 \
+      --prompt '  ' --pointer '▌' --marker '+' --info inline-right --tiebreak begin,length --tabstop 2 \
+      --footer 'Tab select · Enter install · Ctrl-R remove · Ctrl-L installed · Ctrl-A all · Esc quit' \
+      --expect ctrl-r \
+      --preview "$self preview {2}" \
+      --preview-window 'right,60%,border-left,wrap,<110(down,55%,border-top,wrap)' \
+      --bind "ctrl-l:reload($self _rows installed)+change-prompt(● )" \
+      --bind "ctrl-a:reload($self _rows)+change-prompt(  )" \
+      --color 'fg:-1,bg:-1,hl:6,fg+:15,bg+:0,hl+:6,info:8,prompt:4,pointer:6,marker:2,header:8,border:8,label:4,spinner:6' \
+    ) || exit 0
+  key=$(head -n1 <<<"$output")
+  mapfile -t names < <(tail -n +2 <<<"$output" | sed '/^$/d')
+  [[ ${#names[@]} -gt 0 ]] || exit 0
+  if [[ $key == ctrl-r ]]; then apply remove "${names[@]}"; else apply add "${names[@]}"; fi
 }
 
 menu() {
-  local theme rows groups group choice id name mark url
+  local theme rows groups group choice id name mark url search='󰍉  Search all packages'
   theme=$(nascent-theme path)
   dmenu() { fuzzel --config "$theme/fuzzel.ini" --dmenu "$@"; }
   rows=$(helper list "$module" "$catalog" "$system") || {
     notify-send -a nascentOS 'Software' "$(helper list "$module" "$catalog" "$system" 2>&1 >/dev/null)" 2>/dev/null || true
     exit 1
   }
-  groups=$(cut -f2 <<<"$rows" | awk '!seen[$0]++')
+  groups=$(printf '%s\n' "$search"; cut -f2 <<<"$rows" | awk '!seen[$0]++')
   group=$(dmenu --prompt '󰏔  ' --placeholder 'Install software' --lines "$(wc -l <<<"$groups")" <<<"$groups") || exit 0
+  [[ $group == "$search" ]] && in_terminal search
   choice=$(awk -F'\t' -v g="$group" '$2 == g {
       icon = $4 == "installed" ? "󰄬" : ($4 == "manual" ? "󰏌" : "󰐕")
       printf "%s  %s\t%s\n", icon, $3, $1 }' <<<"$rows" |
@@ -98,15 +190,21 @@ menu() {
 
 case "${1:-menu}" in
   menu) menu ;;
+  search|find) search ;;
   list) helper list "$module" "$catalog" "$system" |
     awk -F'\t' '{ printf "%-22s %-16s %-10s %s\n", $1, $2, $4, $3 }' ;;
+  installed) helper installed "$module" "$catalog" "$system" | sed '/^$/d' ;;
   add|remove) action=$1; shift; apply "$action" "$@" ;;
+  preview) preview "${2:?}" ;;
+  _rows) rows "${2:-}" ;;
   -h|--help|help)
     cat <<'HELP'
-nascent software              Open the install menu
-nascent software list         Show catalog software and what is installed
-nascent software add ID...    Add software to /etc/nixos/nascent-software.nix and rebuild
-nascent software remove ID... Remove it again and rebuild
+nascent software                Open the install menu (curated picks and search)
+nascent software search         Search all of nixpkgs; Tab selects, Enter installs, Ctrl-R removes
+nascent software list           Show the curated catalog and what is installed
+nascent software installed      Show everything installed with nascent software
+nascent software add NAME...    Add catalog IDs or nixpkgs packages and rebuild
+nascent software remove NAME... Remove them again and rebuild
 HELP
     ;;
   *) echo "Unknown command: $1. Run nascent software --help." >&2; exit 2 ;;

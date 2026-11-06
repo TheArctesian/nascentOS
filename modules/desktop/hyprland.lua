@@ -53,8 +53,12 @@ for class, workspace in pairs({ ["^(firefox|Firefox)$"] = 2, ["^obsidian$"] = 3,
   ["^(signal|Signal)$"] = 5, ["^(Slack|slack)$"] = 6, ["^com.obsproject.Studio$"] = 8 }) do
   hl.window_rule({ match = { class = class }, workspace = tostring(workspace) .. " silent" })
 end
-hl.window_rule({ match = { class = "^(zenity|pavucontrol|org.pulseaudio.pavucontrol|nm-connection-editor|mpv|nascent-software)$" },
+hl.window_rule({ match = { class = "^(zenity|pavucontrol|org.pulseaudio.pavucontrol|nm-connection-editor|mpv)$" },
   float = true, center = true })
+
+-- Software search and rebuild terminals: a large centred panel, not a tile.
+hl.window_rule({ match = { class = "^nascent-software$" },
+  float = true, size = "max(960, monitor_w*0.86) max(600, monitor_h*0.84)", center = true })
 
 hl.layer_rule({ match = { namespace = "^(launcher|notifications|waybar)$" }, blur = true, ignore_alpha = 0.3 })
 
@@ -92,7 +96,7 @@ bind("SUPER + D", run("nascent launch apps"))
 bind("SUPER + SHIFT + Space", run("nascent menu"))
 bind("SUPER + A", run("nascent-agent-ui"))
 bind("SUPER + I", run("command -v nascent-install >/dev/null && nascent-install"))
-bind("SUPER + SHIFT + I", run("nascent-software"))
+bind("SUPER + SHIFT + I", run("nascent-software search"))
 bind("SUPER + V", run("nascent-clipboard pick"))
 bind("SUPER + N", run("nascent-notify restore"))
 bind("SUPER + SHIFT + N", run("nascent-notify dnd"))

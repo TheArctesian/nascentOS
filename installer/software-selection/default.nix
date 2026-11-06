@@ -35,6 +35,10 @@ let
   unfreeNames =
     map (app: lib.getName (getPackage app)) (lib.filter (app: app.packageUnfree or false) native)
     ++ map (app: app.id) (lib.filter (app: app.packageUnfree or false) appImages);
+  # Any nixpkgs attribute the user chose in `nascent software search`.
+  extraPaths = map (name: lib.splitString "." name) cfg.packages;
+  extraKnown = lib.filter (path: lib.hasAttrByPath path pkgs) extraPaths;
+  extraPackages = map (path: lib.getAttrFromPath path pkgs) extraKnown;
   agentAdapters = {
     claude-code = "claude";
     codex = "codex";
@@ -51,6 +55,15 @@ in
       );
       description = "Stable software catalog IDs selected during installation.";
     };
+    packages = lib.mkOption {
+      type = lib.types.listOf (lib.types.strMatching "[A-Za-z0-9_+-][A-Za-z0-9_.+-]*");
+      default = [ ];
+      example = [
+        "ripgrep"
+        "python3Packages.requests"
+      ];
+      description = "Extra nixpkgs attribute paths chosen with `nascent software search`. Listing an unfree package here permits it.";
+    };
   };
   config = lib.mkIf cfg.enable (
     lib.mkMerge [
@@ -62,6 +75,10 @@ in
             message = "nascent.software.selected contains duplicate IDs.";
           }
           {
+            assertion = builtins.length extraKnown == builtins.length extraPaths;
+            message = "Unknown nixpkgs packages in nascent.software.packages: ${lib.concatStringsSep ", " (map (lib.concatStringsSep ".") (lib.subtractLists extraKnown extraPaths))}.";
+          }
+          {
             assertion = builtins.all (id: builtins.hasAttr id byId) cfg.selected;
             message = "Unknown nascent software IDs: ${lib.concatStringsSep ", " (lib.subtractLists known cfg.selected)}.";
           }
@@ -70,8 +87,8 @@ in
           assertion = app.available && app.kind == "package";
           message = "Cannot select ${app.id}: ${if app.reason == null then "unavailable" else app.reason}";
         }) chosen;
-        nixpkgs.config.allowUnfreePackages = unfreeNames;
-        environment.systemPackages = map getPackage applications;
+        nixpkgs.config.allowUnfreePackages = unfreeNames ++ map lib.getName extraPackages;
+        environment.systemPackages = map getPackage applications ++ extraPackages;
         # Catalog ID -> agent adapter name (the provider's command).
         environment.etc = lib.mapAttrs' (id: command: {
           name = "nascentos/agent-adapters/${command}";
