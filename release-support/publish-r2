@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Upload a verified candidate directory to R2 as one immutable version, then advance latest/.
 # Usage: publish-r2 CANDIDATE_DIR TAG SYSTEM...
-# Env: R2_BUCKET, R2_PUBLIC_URL, R2_KEEP (versions retained), RCLONE_CONFIG_R2_* (S3 remote "r2").
+# Env: R2_BUCKET, R2_PUBLIC_URL, R2_KEEP (versions retained, default 1), RCLONE_CONFIG_R2_* (S3 remote "r2").
 set -euo pipefail
 shopt -s inherit_errexit
 candidate=$1 tag=$2
@@ -16,7 +16,7 @@ print(d)' "$@"; }
 # errors, which (with inherit_errexit, at an assignment) stops the script instead of reading as "absent".
 exists() { local out; out=$(rclone lsjson --stat --files-only "$1"); [[ $out == null ]] && echo no || echo yes; }
 tag_number=$(number "$tag")
-bucket=${R2_BUCKET:?} public=${R2_PUBLIC_URL:?} keep=${R2_KEEP:-5}
+bucket=${R2_BUCKET:?} public=${R2_PUBLIC_URL:?} keep=${R2_KEEP:-1}
 [[ $keep =~ ^[1-9][0-9]*$ ]] || { echo 'R2_KEEP must be a positive integer' >&2; exit 1; }
 remote="r2:$bucket"
 work=$(mktemp -d)
@@ -89,7 +89,8 @@ PY
   echo "latest/ now points at $tag for: ${systems[*]}"
 fi
 
-# Retain the newest $keep versions, plus any version latest/ still serves.
+# Retain the newest $keep versions (by default only this one, to keep R2 storage small),
+# plus any version latest/ still serves.
 mapfile -t serving < <(rclone cat "$remote/latest.json" | python3 -c 'import json,sys; print(*{i["version"] for i in json.load(sys.stdin)["images"].values()}, sep="\n")')
 mapfile -t versions < <(rclone lsf --dirs-only "$remote" | sed -n 's#^\(v[0-9]*\.[0-9]*\.[0-9]*\)/$#\1#p' | sort -V)
 excess=$(( ${#versions[@]} > keep ? ${#versions[@]} - keep : 0 ))

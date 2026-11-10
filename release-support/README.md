@@ -23,9 +23,10 @@ curl -LO https://iso.stephenokita.com/latest/nascentos-x86_64-linux.iso.sha256
 sha256sum -c nascentos-x86_64-linux.iso.sha256
 ```
 
-Use `shasum -a 256 -c` on macOS. The newest five versions are retained
-(`R2_KEEP` in `publish-r2`), plus any version `latest/` still serves; older
-version directories are deleted. If one architecture fails to build, its
+Use `shasum -a 256 -c` on macOS. Only the newest version is retained
+(`R2_KEEP` in `publish-r2`, default 1), plus any version `latest/` still
+serves; older version directories are deleted, so a versioned link stops
+working once a newer version is published. If one architecture fails to build, its
 `latest/` image stays at the previous version rather than disappearing, so
 `latest.json` can list different versions per architecture.
 
